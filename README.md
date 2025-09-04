@@ -64,6 +64,15 @@ mkdir archives music downloads
 touch playlists music_imports.db
 ```
 
+> You can also link the folders to different places, doesn't have to be in the
+> current working directory.
+> You can do something like:
+> ```yml title="compose.yml"
+> volumes:
+>     - /mnt/downloads:/downloads
+>     - /mnt/music:/music
+> ```
+
 Fill in the `playlists` file like this..
 
 ```ini title="playlists.env"
