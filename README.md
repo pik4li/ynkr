@@ -25,7 +25,7 @@ You ~need~ (you technically don't **need** a gluetun config, or any other VPN, b
 ```yml
 services:
   ynkr:
-    image: git.k4li.de/docker/ynkr:latest
+    image: ynkr:latest
     environment:
       - PUID=1000        # Replace with your actual UID (your own id)
       - PGID=1000         # Replace with your actual GID (the docker group)
@@ -81,7 +81,7 @@ If you're using an ARM-based system like Raspberry Pi, you'll need to build the 
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/pik4li/ynkr.git
    cd ynkr
    ```
 
@@ -94,6 +94,6 @@ If you're using an ARM-based system like Raspberry Pi, you'll need to build the 
 ```yml
 services:
   ynkr:
-    image: ynkr:latest  # Change from git.k4li.de/docker/ynkr:latest to your local tag
+    image: ynkr:latest  # Change to your local image:tag
     # ... rest of the configuration remains the same
 ```
