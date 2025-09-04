@@ -12,10 +12,9 @@ to)..
 **Preperations**
 
 > [!CAUTION]
-> ~If you are on an ARM based system, there is currently no automatic build~
+> ~If you are on an ARM based system, there is currently no automatic build process for it.~
 > Currently, there is no automatic build process, so you do have to build your
-> own image regarding your system architechture
-> process for it. So you have to [build your own image](#building-the-container-for-arm-based-systems))
+> own image regarding your system architechture. So you have to [build your own image](#building-the-container-for-arm-based-systems))
 
 - Youtube playlists marked at least as `not listed`
 - Docker/-compose
