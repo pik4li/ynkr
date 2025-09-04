@@ -1,0 +1,52 @@
+services:
+  ynkr:
+    environment:
+      - PUID=1000        # Replace with your actual UID
+      - PGID=992         # Replace with your actual GID (the docker group GID)
+    build: .
+    # image: git.k4li.de/docker/ynkr:latest
+    volumes:
+      - ./downloads:/downloads # this is the raw music/download folder -> playlists same as in source
+      - ./music:/music # this is the processed music folder
+
+      - ./db/music_imports.db:/app/music_imports.db:rw # <- in this database file, we will store and keep track of the processed data, so that we dont need to generate too much ai requests.
+
+      - ./archives:/archives # <- for keeping track of yt-dlp's already downloaded tracks
+      - ./playlists:/app/playlists:ro # <- to let yt-dlp know what to download
+
+      - .env:/app/.env:ro # needed for pythonscripts and other internal scripts
+    restart: unless-stopped
+    # CAUTION:
+    # UNCOMMENT AND ACTIVATE YOUR VPN FOR PRIVACY DOWN BELOW!
+    # If you don't use a proxy, your public ip adress will be logged in the
+    # youtube servers, possibly even by your ISP and other sources which i would
+    # typically try to stay away from. So my suggestion would be to use a vpn,
+    # which you can look up yourself how to do it with gluetun. Actually you
+    # could theoretically also use any other proxy or vpn container, as long as
+    # you keep the network_mode: service:proxy line uncommented and let the
+    # <proxy> part be the container name.
+
+    # uncomment next lines to activate security (needs vpn configuration)
+    # network_mode: service:proxy
+    # depends_on:
+    #   - proxy
+
+  # proxy:
+  #   image: docker.io/qmcgaw/gluetun:latest
+  #   container_name: proxy
+  #   # ports:
+  #     # - 8888:8888/tcp # HTTP proxy
+  #     # - 8069:8388/tcp # Shadowsocks
+  #     # - 8069:8388/udp # Shadowsocks
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun:/dev/net/tun
+  #   environment:
+  #     - VPN_SERVICE_PROVIDER=<provider>
+  #     - OPENVPN_USER=<user>
+  #     - OPENVPN_PASSWORD=<password>
+  #     - TZ=Europe/Berlin
+  #     # - SERVER_COUNTRIES=Spain
+  #   volumes:
+  #     - ./gluetun:/gluetun <-- you have to put in your certificates in there!!
