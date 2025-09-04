@@ -1,5 +1,7 @@
 ## ynkr
 
+> v0.1
+
 ---
 
 It's a youtube audio grabber. Easy to setup, private via VPNs (if you want it
