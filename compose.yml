@@ -4,7 +4,7 @@ services:
       - PUID=1000        # Replace with your actual UID
       - PGID=992         # Replace with your actual GID (the docker group GID)
     build: .
-    # image: git.k4li.de/docker/ynkr:latest
+    # image: ynkr:latest
     volumes:
       - ./downloads:/downloads # this is the raw music/download folder -> playlists same as in source
       - ./music:/music # this is the processed music folder
