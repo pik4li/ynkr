@@ -12,15 +12,18 @@
 #   YNKR_MUSIC     - Final music library directory (default: ./music)
 #   YNKR_ARCHIVE   - yt-dlp archive file (default: ./.cache/archive.yt)
 #   YNKR_PLAYLISTS - Playlist URLs file (default: ./playlists)
-#   YNKR_DEBUG     - Enable debug logging (default: true)
+#   YNKR_DEBUG     - Enable debug logging (default: false)
+
 declare DB="${YNKR_DB:-./db/ynkr.db}"
 declare DOWNLOADS="${YNKR_DOWNLOADS:-./downloads}"
 declare MUSIC_DIR="${YNKR_MUSIC:-./music}"
-declare DEBUG=${YNKR_DEBUG:-true}
+declare YNKR_DEBUG=${YNKR_DEBUG:-false}
+
+# YNKR_DEBUG=true
 
 declare -A YNKR_PLAYLIST
 
-YT_ARCHIVE="${YNKR_ARCHIVE:-./.cache/archive.yt}"
+YT_ARCHIVE="${YNKR_ARCHIVE:-/app/downloads/archive.yt}"
 [[ -e "$YT_ARCHIVE" ]] || {
   mkdir -p "$(dirname "$YT_ARCHIVE")"
   touch "$YT_ARCHIVE"

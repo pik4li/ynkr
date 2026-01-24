@@ -67,13 +67,13 @@ download() {
 main() {
   while true; do
     prepare
-    if $DEBUG; then
+    if $YNKR_DEBUG; then
       db:show
     fi
 
     download
 
-    if $DEBUG; then
+    if $YNKR_DEBUG; then
       db:show
       db:show playlists
       db:show songs
