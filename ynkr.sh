@@ -75,7 +75,7 @@ main() {
       db:show songs
     fi
 
-    ynkr:meta
+    ynkr:meta &
 
     log info "${ANSI[yellow]}YNKR - Done"
     log warn "${ANSI[yellow]}Sleeping for the next ${ANSI[red]}$SLEEP${ANSI[yellow]} seconds"

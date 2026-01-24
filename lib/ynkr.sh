@@ -85,7 +85,7 @@ ynkr:song() {
     "--retries=5"
     "--progress" "--newline"
     "--color=always"
-    "--abort-on-error"
+    # "--abort-on-error"
     "$url"
   )
 
