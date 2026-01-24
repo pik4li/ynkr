@@ -32,8 +32,8 @@ _sanitize_filename() {
   # Replace multiple spaces with single space
   name="${name//  / }"
   # Trim leading/trailing whitespace
-  name="${name#"${name%%[![:space:]]*}"}"
-  name="${name%"${name##*[![:space:]]}"}"
+  name="${name# }"
+  name="${name% }"
   # Truncate to 200 chars
   printf '%s' "${name:0:200}"
 }
