@@ -49,7 +49,7 @@ download() {
     name="$(db:get-song-name "$id")"
     log info "${ANSI[red]}download${ANSI[nc]} - ${name}:${id}"
 
-    if ynkr:song "$id"; then
+    if ynkr:song "$id" "$name"; then
       log info "${ANSI[green]}Downloaded: $name - $id"
       db:mark-downloaded "$id"
     else

@@ -201,7 +201,7 @@ SQL
 
 db:get-pending() {
   db "
-  SELECT s.yt_id, s.name
+  SELECT s.yt_id
   FROM songs s
   JOIN song_tags st ON st.song_id = s.id
   JOIN tags t ON t.id = st.tag_id
