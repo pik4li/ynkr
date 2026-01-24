@@ -95,9 +95,16 @@ db:add-song() {
   yt_id_esc=$(_sql_escape "$yt_id")
   log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | ytid=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
+  # Insert new song, or update name if it was empty/null
   sqlite3 "$DB" <<SQL
-INSERT OR IGNORE INTO songs (name, yt_id)
-VALUES ('$name_esc', '$yt_id_esc');
+INSERT INTO songs (name, yt_id)
+VALUES ('$name_esc', '$yt_id_esc')
+ON CONFLICT(yt_id) DO UPDATE SET
+  name = CASE
+    WHEN excluded.name != '' AND (songs.name IS NULL OR songs.name = '')
+    THEN excluded.name
+    ELSE songs.name
+  END;
 SQL
 
   if [[ -n "$playlist" ]]; then
@@ -243,6 +250,37 @@ db:mark-failed() {
 SQL
 }
 
+db:cleanup-unavailable() {
+  # Mark songs with empty names as 'unavailable' and remove 'pending' tag
+  # These are videos that were private/deleted when added
+  log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} Marking unavailable songs (empty names)..."
+
+  local count
+  count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM songs WHERE name IS NULL OR name = '';")
+
+  if ((count == 0)); then
+    log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} No unavailable songs found"
+    return 0
+  fi
+
+  sqlite3 "$DB" <<'SQL'
+  -- Create unavailable tag if not exists
+  INSERT OR IGNORE INTO tags (name) VALUES ('unavailable');
+
+  -- Remove pending tag from songs with empty names
+  DELETE FROM song_tags
+  WHERE song_id IN (SELECT id FROM songs WHERE name IS NULL OR name = '')
+    AND tag_id = (SELECT id FROM tags WHERE name = 'pending');
+
+  -- Add unavailable tag to songs with empty names
+  INSERT OR IGNORE INTO song_tags (song_id, tag_id)
+  SELECT s.id, t.id FROM songs s, tags t
+  WHERE (s.name IS NULL OR s.name = '') AND t.name = 'unavailable';
+SQL
+
+  log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} Marked ${ANSI[cyan]}${count}${ANSI[nc]} songs as unavailable"
+}
+
 # ---------- display ----------
 
 db:show() {
@@ -270,7 +308,19 @@ SQL
     sqlite3 -column -header "$DB" "SELECT id, yt_id, name, created_at FROM playlists;"
     ;;
   songs)
-    sqlite3 -column -header "$DB" "SELECT id, yt_id, name, artist, album, file_path FROM songs;"
+    sqlite3 -column -header "$DB" "
+      SELECT
+        s.id,
+        s.yt_id,
+        s.name,
+        s.artist,
+        s.album,
+        COALESCE(GROUP_CONCAT(t.name, ', '), '') AS tags
+      FROM songs s
+      LEFT JOIN song_tags st ON st.song_id = s.id
+      LEFT JOIN tags t ON t.id = st.tag_id
+      GROUP BY s.id
+      ORDER BY s.id;"
     ;;
   tags)
     sqlite3 -column -header "$DB" "SELECT id, name FROM tags;"

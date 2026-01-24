@@ -44,12 +44,23 @@ prepare() {
   done
 }
 download() {
+  # First, clean up any songs with empty names (unavailable videos)
+  db:cleanup-unavailable
+
   local songs=()
   songs=($(db:get-pending))
 
   for id in "${songs[@]}"; do
     local name
     name="$(db:get-song-name "$id")"
+
+    # Skip songs with empty names (unavailable videos)
+    if [[ -z "$name" ]]; then
+      log warn "${ANSI[yellow]}[download]${ANSI[nc]} Skipping ${id} - video unavailable (no title)"
+      db:mark-failed "$id"
+      continue
+    fi
+
     log info "${ANSI[red]}[download]${ANSI[nc]} - ${name}:${id}"
 
     if ynkr:song "$id" "$name"; then
