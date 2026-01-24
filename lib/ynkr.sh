@@ -90,7 +90,8 @@ ynkr:song() {
     "--concurrent-fragments=3"
     "--retries=5"
     "--download-archive=$YT_ARCHIVE.yt"
-    "--print=%(colors.green)s[▶]%(colors.reset)s %(title)s\n%(colors.blue)s[]%(colors.reset)s %(uploader)s  %(colors.magenta)s[]%(colors.reset)s %(duration_string)s  %(colors.cyan)s[󰍹]%(colors.reset)s %(resolution)s  %(colors.yellow)s[]%(colors.reset)s %(format_note)s\n%(colors.gray)s[]%(colors.reset)s %(webpage_url)s\n"
+    "--progress" "--newline"
+    # "--print=%(colors.green)s[▶]%(colors.reset)s %(title)s\n%(colors.blue)s[]%(colors.reset)s %(uploader)s  %(colors.magenta)s[]%(colors.reset)s %(duration_string)s  %(colors.cyan)s[󰍹]%(colors.reset)s %(resolution)s  %(colors.yellow)s[]%(colors.reset)s %(format_note)s\n%(colors.gray)s[]%(colors.reset)s %(webpage_url)s\n"
     "$url"
   )
 
