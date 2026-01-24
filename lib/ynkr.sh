@@ -12,7 +12,7 @@ ynkr:parse-playlist-file() {
     ((count++))
     url=${url% }
     url=${url# }
-    name=$(ynkr:get-playlist-info "$url" | jq -r '.title')
+    name="$(ynkr:get-playlist-info "$url" | jq -r '.title')"
     [[ -n "$name" ]] || name="unknown"
 
     YNKR_PLAYLIST[$name]="$url"

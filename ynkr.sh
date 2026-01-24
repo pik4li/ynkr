@@ -60,9 +60,7 @@ download() {
 }
 
 main() {
-  ynkr:meta &
   while true; do
-
     prepare
     if $DEBUG; then
       db:show
@@ -76,6 +74,8 @@ main() {
       db:show playlists
       db:show songs
     fi
+
+    ynkr:meta
 
     log info "${ANSI[yellow]}YNKR - Done"
     log warn "${ANSI[yellow]}Sleeping for the next ${ANSI[red]}$SLEEP${ANSI[yellow]} seconds"
