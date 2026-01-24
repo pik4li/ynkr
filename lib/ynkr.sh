@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ynkr:parse-playlist-file() {
-  local file="/app/playlists"
+  local file="${YNKR_PLAYLISTS:-./playlists}"
   [[ -n "$file" && -f "$file" ]] || {
     log error "${ANSI[cyan]}[ynkr:parse-playlist-file:] ${ANSI[red]}${file@Q} was not found!"
     exit 1
@@ -118,6 +118,9 @@ ynkr:meta() {
 
     # Process downloaded files with MusicBrainz
     mb:process
+
+    # Tag organized files for Jellyfin compatibility
+    jf:process
 
     # Sleep before next iteration
     for t in {30..0}; do

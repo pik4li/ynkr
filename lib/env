@@ -1,15 +1,28 @@
 #!/usr/bin/env bash
 
-declare DB="/app/db/ynkr.db"
-declare DOWNLOADS="/app/downloads"
-declare MUSIC_DIR="/app/music"
-declare DEBUG=true
+# Environment configuration for ynkr
+#
+# All paths use environment variables with sensible defaults.
+# For Docker: set YNKR_DB=/app/db/ynkr.db, YNKR_DOWNLOADS=/app/downloads, etc.
+# For local dev: defaults resolve to ./db, ./downloads, ./music
+#
+# Environment variables:
+#   YNKR_DB        - Path to SQLite database (default: ./db/ynkr.db)
+#   YNKR_DOWNLOADS - Download staging directory (default: ./downloads)
+#   YNKR_MUSIC     - Final music library directory (default: ./music)
+#   YNKR_ARCHIVE   - yt-dlp archive file (default: ./.cache/archive.yt)
+#   YNKR_PLAYLISTS - Playlist URLs file (default: ./playlists)
+#   YNKR_DEBUG     - Enable debug logging (default: true)
+declare DB="${YNKR_DB:-./db/ynkr.db}"
+declare DOWNLOADS="${YNKR_DOWNLOADS:-./downloads}"
+declare MUSIC_DIR="${YNKR_MUSIC:-./music}"
+declare DEBUG=${YNKR_DEBUG:-true}
 
 declare -A YNKR_PLAYLIST
 
-YT_ARCHIVE=/app/.cache/archive.yt
+YT_ARCHIVE="${YNKR_ARCHIVE:-./.cache/archive.yt}"
 [[ -e "$YT_ARCHIVE" ]] || {
-  mkdir -p /app/.cache
+  mkdir -p "$(dirname "$YT_ARCHIVE")"
   touch "$YT_ARCHIVE"
 }
 

@@ -7,6 +7,7 @@ cd "${0%/*}" >/dev/null 2>&1 || : # cd's into the right dir for sourcing..
 . lib/ynkr.sh
 . lib/db.sh
 . lib/musicbrainz.sh
+. lib/jellyfin.sh
 
 prepare() {
   ynkr:parse-playlist-file            # parses the playlist file and gets the variables right
