@@ -8,6 +8,7 @@ WORKDIR /app
 RUN mkdir downloads music db lib .cache
 
 COPY ynkr.sh /app
+COPY async-process.sh /app
 COPY lib/* /app/lib/
 COPY playlists /app
 
@@ -29,4 +30,4 @@ USER appuser
 # RUN /app/run-import.sh init # initialize all the python dependencies on container build
 
 # Start cron in the background when the container starts
-ENTRYPOINT ["/bin/bash", "-c", "/app/ynkr.sh"]
+ENTRYPOINT ["/bin/bash", "-c", "/app/async-process.sh & /app/ynkr.sh"]

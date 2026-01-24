@@ -42,7 +42,7 @@ prepare() {
 }
 download() {
   local songs=()
-  songs=("$(db:get-pending)")
+  songs=($(db:get-pending))
 
   for id in "${songs[@]}"; do
     local name
@@ -74,8 +74,6 @@ main() {
       db:show playlists
       db:show songs
     fi
-
-    ynkr:meta &
 
     log info "${ANSI[yellow]}YNKR - Done"
     log warn "${ANSI[yellow]}Sleeping for the next ${ANSI[red]}$SLEEP${ANSI[yellow]} seconds"
