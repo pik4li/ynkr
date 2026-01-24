@@ -77,8 +77,7 @@ ynkr:song() {
   local args=()
   args=(
     "--extract-audio"
-    "--paths=$DOWNLOADS/"
-    "--output=$yid"
+    "--output=$DOWNLOADS/$yid"
     "--download-archive=$YT_ARCHIVE"
     "--embed-thumbnail"
     "--embed-metadata"
