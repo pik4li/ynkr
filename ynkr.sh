@@ -37,6 +37,8 @@ prepare() {
       local name=${songs[j]}
       db:add-song "${name}" "${ids[j]}" "$(printf "%s\n" "$INFO" | jq -r '.id')"
       db:tag-song "${ids[j]}" "pending"
+
+      sleep .005
     done
   done
 }
@@ -56,6 +58,8 @@ download() {
       log warn "${ANSI[yellow]}Failed: $name - $id"
       db:mark-failed "$id"
     fi
+
+    sleep .005
   done
 }
 
@@ -64,15 +68,18 @@ main() {
     prepare
     if $DEBUG; then
       db:show
-      db:show playlists
-      db:show songs
     fi
 
     download
+
     if $DEBUG; then
       db:show
       db:show playlists
       db:show songs
+
+      sleep 3
+
+      tree "$MUSIC_DIR"
     fi
 
     log info "${ANSI[yellow]}YNKR - Done"
