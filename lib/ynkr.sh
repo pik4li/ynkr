@@ -6,15 +6,24 @@ ynkr:parse-playlist-file() {
     exit 1
   }
 
-  while read -r url; do
+  while read -r line; do
+    # Strip comments (everything after #)
+    local url="${line%%#*}"
+    # Trim whitespace
+    url="${url#"${url%%[![:space:]]*}"}" # leading
+    url="${url%"${url##*[![:space:]]}"}" # trailing
+
+    # Skip empty lines
+    [[ -z "$url" ]] && continue
+
     name="$(ynkr:get-playlist-info "$url" | jq -r '.title')"
-    [[ -n "$name" ]] || name="unknown"
+    [[ -n "$name" && "$name" != "null" ]] || name="unknown"
 
     YNKR_PLAYLIST[$name]="$url"
     log info "${ANSI[magenta]}[ynkr:parse-playlist-file:]${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=$url${ANSI[green]}${ANSI[nc]}"
   done <"$file"
 
-  if $DEBUG; then
+  if $YNKR_DEBUG; then
     declare -p YNKR_PLAYLIST
   fi
 }
@@ -31,7 +40,7 @@ ynkr:get-playlist-ids() {
     local target="${PLAYLIST[$idx]}"
 
     if [[ "$target" =~ list=([^& \n]*) ]]; then
-      id=${BASH_REMATCH[0]}
+      id=${BASH_REMATCH[1]}
     fi
 
     # deduplication..
@@ -42,6 +51,7 @@ ynkr:get-playlist-ids() {
         continue 2
       fi
     done
+    [[ -n "$id" ]] || continue
 
     # overwrite the url with the id in the array
     PLAYLIST[$idx]=$id
