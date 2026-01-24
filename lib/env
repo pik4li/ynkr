@@ -8,6 +8,9 @@ declare DEBUG=true
 declare -A YNKR_PLAYLIST
 
 YT_ARCHIVE=/app/.cache/archive.yt
-[[ -d "$(basename $YT_ARCHIVE)" ]] || mkdir -p "$(basename $YT_ARCHIVE)"
+[[ -e "$YT_ARCHIVE" ]] || {
+  mkdir -p /app/.cache
+  touch "$YT_ARCHIVE"
+}
 
 SLEEP=69
