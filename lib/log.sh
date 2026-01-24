@@ -46,7 +46,7 @@ log() {
     ;;
   esac
 
-  echo "${color} ${msg[*]}${ANSI[nc]}"
+  echo "${color} ${msg[*]}${ANSI[nc]}" >&2
 }
 
 check-deps() {
