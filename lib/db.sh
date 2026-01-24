@@ -64,7 +64,7 @@ db:add-playlist() {
   local name_esc yt_id_esc
   name_esc=$(_sql_escape "$name")
   yt_id_esc=$(_sql_escape "$yt_id")
-  log info "${ANSI[yellow]}db:add-playlist:${ANCI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | id=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
+  log info "${ANSI[yellow]}db:add-playlist:${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | id=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
   sqlite3 "$DB" <<SQL
 INSERT INTO playlists (name, yt_id)
@@ -168,6 +168,50 @@ db:update-song-name() {
 
   sqlite3 "$DB" <<SQL
 UPDATE songs SET name='$newname_esc' WHERE yt_id='$id';
+SQL
+}
+
+db:get-pending() {
+  db "
+  SELECT s.yt_id, s.name
+  FROM songs s
+  JOIN song_tags st ON st.song_id = s.id
+  JOIN tags t ON t.id = st.tag_id
+  WHERE t.name = 'pending';
+  "
+}
+
+db:mark-downloaded() {
+  local yt_id="$1"
+  local yt_id_esc
+  yt_id_esc=$(_sql_escape "$yt_id")
+
+  sqlite3 "$DB" <<SQL
+  DELETE FROM song_tags
+  WHERE song_id = (SELECT id FROM songs WHERE yt_id = '$yt_id_esc')
+    AND tag_id = (SELECT id FROM tags WHERE name = 'pending');
+
+  INSERT OR IGNORE INTO tags (name) VALUES ('downloaded');
+  INSERT OR IGNORE INTO song_tags (song_id, tag_id)
+  SELECT s.id, t.id FROM songs s, tags t
+  WHERE s.yt_id = '$yt_id_esc' AND t.name = 'downloaded';
+SQL
+}
+
+db:mark-failed() {
+  local yt_id="$1"
+  local yt_id_esc
+  yt_id_esc=$(_sql_escape "$yt_id")
+
+  sqlite3 "$DB" <<SQL
+  DELETE FROM song_tags
+  WHERE song_id = (SELECT id FROM songs WHERE yt_id = '$yt_id_esc')
+    AND tag_id = (SELECT id FROM tags WHERE name = 'pending');
+
+  INSERT OR IGNORE INTO tags (name) VALUES ('failed');
+  INSERT OR IGNORE INTO song_tags (song_id, tag_id)
+  SELECT s.id, t.id FROM songs s, tags t
+  WHERE s.yt_id = '$yt_id_esc' AND t.name = 'failed';
 SQL
 }
 

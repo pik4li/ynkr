@@ -8,16 +8,16 @@ cd "${0%/*}" >/dev/null 2>&1 || : # cd's into the right dir for sourcing..
 . lib/db.sh
 
 prepare() {
-  ynkr:parse-playlist-file             # parses the playlist file and gets the variables right
-  ynkr:get-playlist-ids YNKR_PLAYLISTS # replaces the urls with the actual playlist ids
+  ynkr:parse-playlist-file            # parses the playlist file and gets the variables right
+  ynkr:get-playlist-ids YNKR_PLAYLIST # replaces the urls with the actual playlist ids
 
   ynkr:meta &
 
   local name
 
   db:init
-  for name in "${!YNKR_PLAYLISTS[@]}"; do
-    local id=${YNKR_PLAYLISTS[$name]}
+  for name in "${!YNKR_PLAYLIST[@]}"; do
+    local id=${YNKR_PLAYLIST[$name]}
     [[ -n "$name" && -n "$id" ]] || continue
     db:add-playlist "$name" "$id" # add playlist to the database
 
@@ -36,22 +36,48 @@ prepare() {
     local len=${#songs[@]}
     for ((j = 0; j < len; j++)); do
       local name=${songs[j]}
-      db:add-song "${name}" "${ids[j]}" "$(printf "%s\n" "$INFO" | jq -r '.title')"
+      db:add-song "${name}" "${ids[j]}" "$(printf "%s\n" "$INFO" | jq -r '.id')"
       db:tag-song "${ids[j]}" "pending"
-    done
-
-    for ((j = 0; j < len; j++)); do
-      local id=${ids[j]}
-      ynkr:song "$id" "${songs[j]}"
     done
   done
 }
-prepare
+download() {
+  local songs=()
+  songs=("$(db:get-pending)")
 
-if $DEBUG; then
-  db:show
-  db:show playlists
-  db:show songs
-fi
+  for id in "${songs[@]}"; do
+    local name
+    name="$(db:get-song-name "$id")"
+    log info "${ANSI[red]}download${ANSI[nc]} - ${name}:${id}"
 
-# sanitize-metadata & # sub process for managing sanitization.. Will get addet in the future.
+    if ynkr:song "$id"; then
+      log info "${ANSI[green]}Downloaded: $name - $id"
+      db:mark-download "$id"
+    else
+      log warn "${ANSI[yellow]}Failed: $name - $id"
+      db:mark-failed "$id"
+    fi
+  done
+}
+
+main() {
+  prepare
+  if $DEBUG; then
+    db:show
+    db:show playlists
+    db:show songs
+  fi
+  download
+  if $DEBUG; then
+    db:show
+    db:show playlists
+    db:show songs
+  fi
+}
+
+while true; do
+  main
+
+  log info "YNKR - Done"
+  log warn "Sleeping for the next $SLEEP seconds"
+done

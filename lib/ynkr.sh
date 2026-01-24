@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-. /app/lib/db.sh
-
 ynkr:parse-playlist-file() {
   local file="/app/playlists"
   local count=0
@@ -17,14 +15,14 @@ ynkr:parse-playlist-file() {
     name=$(ynkr:get-playlist-info "$url" | jq -r '.title')
     [[ -n "$name" ]] || name="unknown"
 
-    YNKR_PLAYLISTS[$name]+=":$url:"
+    YNKR_PLAYLIST[$name]="$url"
     log info "${ANSI[magenta]}ynkr:parse-playlist-file:${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=${ANSI[green]}${ANSI[nc]}"
   done <"$file"
 }
 
 # parses the id from the playlist url
 ynkr:get-playlist-ids() {
-  local -n PLAYLIST=$1 # Assosiative array (YNKR_PLAYLISTS)
+  local -n PLAYLIST=$1 # Assosiative array (YNKR_PLAYLIST)
   local idx
 
   for idx in "${!PLAYLIST[@]}"; do
@@ -81,7 +79,7 @@ ynkr:song() {
     "--extract-audio"
     "--paths=$DOWNLOADS/"
     "--output=$yid"
-    "--download-archive=$YT_ARCHIVE.yt"
+    "--download-archive=$YT_ARCHIVE"
     "--embed-thumbnail"
     "--embed-metadata"
     "--audio-quality=0"
@@ -89,6 +87,7 @@ ynkr:song() {
     "--retries=5"
     "--progress" "--newline"
     "--color=always"
+    "--abort-on-error"
     "$url"
   )
 
@@ -98,12 +97,22 @@ ynkr:song() {
 # should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
   while true; do
+    local tmp=()
+    mapfile tmp < <(ls "$DOWNLOADS/")
+    ((${#tmp} > 0)) || continue
+
     local files=()
-    mapfile files < <(ls "$DOWNLOADS/")
-    ((${#files} > 0)) || continue
+    for f in "${tmp[@]}"; do
+      files+=("${f%.*}")
+    done
+
+    for id in "${files[@]}"; do
+      local name
+      name=$(db:get-song-name "$id")
+    done
+
     log info "Found files to process:"
     printf "<${ANSI[green]}%s${ANSI[nc]}>\n" "${files[@]}"
-
     for ((s = 50; s > 0; s--)); do
       sleep 1
       log info "$s.."
