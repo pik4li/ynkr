@@ -171,7 +171,7 @@ _mb_get_pending_files() {
 
     # Check tags
     tags=$(db:get-song-tag "$yt_id" 2>/dev/null)
-    if [[ "$tags" == *"downloaded"* && "$tags" != *"organized"* ]]; then
+    if [[ "$tags" == *"downloaded"* ]] && [[ "$tags" != *"organized"* ]]; then
       files+=("$file")
     fi
   done

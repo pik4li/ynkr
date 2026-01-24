@@ -24,6 +24,8 @@ ynkr:get-playlist-ids() {
   local -n PLAYLIST=$1 # Assosiative array (YNKR_PLAYLIST)
   local idx
 
+  local songs=($(db:get-pending))
+
   for idx in "${!PLAYLIST[@]}"; do
     local id
     local target="${PLAYLIST[$idx]}"
@@ -32,6 +34,15 @@ ynkr:get-playlist-ids() {
       id=${BASH_REMATCH[0]%&}
       id=${id#\?list=}
     fi
+
+    # deduplication..
+    for s in "${songs[@]}"; do
+      [[ -n "$s" ]] || continue
+
+      if [[ "$s" == "$id" ]]; then
+        continue 2
+      fi
+    done
 
     # overwrite the url with the id in the array
     PLAYLIST[$idx]=$id
