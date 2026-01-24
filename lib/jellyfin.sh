@@ -292,21 +292,21 @@ _jf_process_file() {
   local file="$1"
   local yt_id artist album title
 
-  # Extract yt_id from filename
-  yt_id=$(basename "$file")
-  yt_id="${yt_id%.*}"
+  # Escape file path for SQL (single quotes)
+  local file_esc="${file//\'/\'\'}"
 
-  # Get current metadata from database
+  # Look up by file_path (files are named by title after mb:process)
   local db_data
-  db_data=$(db "SELECT name, artist, album FROM songs WHERE yt_id='$yt_id';")
+  db_data=$(db "SELECT yt_id, name, artist, album FROM songs WHERE file_path='$file_esc';" 2>&1)
 
-  if [[ -z "$db_data" ]]; then
-    log warn "${ANSI[green]}[jf:]${ANSI[nc]} No DB entry for ${yt_id}, skipping"
+  if [[ -z "$db_data" || "$db_data" == *"Error"* ]]; then
+    log warn "${ANSI[green]}[jf:]${ANSI[nc]} No DB entry for file: ${ANSI[cyan]}${file}${ANSI[nc]}"
+    [[ "$db_data" == *"Error"* ]] && log err "${ANSI[green]}[jf:]${ANSI[nc]} SQL error: ${db_data}"
     return 1
   fi
 
   # Parse tab-separated values
-  IFS=$'\t' read -r title artist album <<< "$db_data"
+  IFS=$'\t' read -r yt_id title artist album <<< "$db_data"
 
   [[ -z "$title" ]] && title=$(basename "$file" | sed 's/\.[^.]*$//')
   [[ -z "$artist" ]] && artist="Unknown Artist"
