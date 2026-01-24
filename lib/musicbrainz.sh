@@ -89,11 +89,61 @@ _mb_extract_artist() {
   [[ -n "$artist" ]] && printf '%s' "$artist"
 }
 
+_mb_is_valid_album() {
+  local album="$1"
+  local title="$2"
+  local artist="$3"
+
+  [[ -z "$album" ]] && return 1
+
+  # Normalize for comparison
+  local album_lower="${album,,}"
+  local title_lower="${title,,}"
+  local artist_lower="${artist,,}"
+
+  # Reject if album == artist (the bug we're fixing)
+  [[ "$album_lower" == "$artist_lower" ]] && return 1
+
+  # Reject if album is too similar to title (singles often match)
+  [[ "$album_lower" == "$title_lower" ]] && return 1
+  [[ "$title_lower" == *"$album_lower"* ]] && return 1
+  [[ "$album_lower" == *"$title_lower"* ]] && return 1
+
+  return 0
+}
+
 _mb_extract_album() {
   local json="$1"
+  local title="$2"
+  local artist="$3"
   local album
-  album=$(printf '%s' "$json" | jq -r '.recordings[0].releases[0].title // empty')
-  [[ -n "$album" ]] && printf '%s' "$album"
+
+  # Try to find best release: Album > EP > Single, skip compilations
+  # jq: filter releases, sort by type priority, get first valid one
+  album=$(printf '%s' "$json" | jq -r '
+    .recordings[0].releases
+    | map(select(.["release-group"]["primary-type"] == "Album"))
+    | .[0].title // empty
+  ')
+
+  # Fallback to EP if no album
+  if [[ -z "$album" ]]; then
+    album=$(printf '%s' "$json" | jq -r '
+      .recordings[0].releases
+      | map(select(.["release-group"]["primary-type"] == "EP"))
+      | .[0].title // empty
+    ')
+  fi
+
+  # Fallback to any release
+  if [[ -z "$album" ]]; then
+    album=$(printf '%s' "$json" | jq -r '.recordings[0].releases[0].title // empty')
+  fi
+
+  # Validate album before returning
+  if _mb_is_valid_album "$album" "$title" "$artist"; then
+    printf '%s' "$album"
+  fi
 }
 
 # ---------- yt-dlp fallback ----------
@@ -190,7 +240,7 @@ _mb_process_file() {
 
   if [[ -n "$json" ]]; then
     artist=$(_mb_extract_artist "$json")
-    album=$(_mb_extract_album "$json")
+    album=$(_mb_extract_album "$json" "$title" "$file_artist")
   fi
 
   # Fallback chain:
