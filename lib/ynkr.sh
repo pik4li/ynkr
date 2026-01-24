@@ -31,8 +31,7 @@ ynkr:get-playlist-ids() {
     local target="${PLAYLIST[$idx]}"
 
     if [[ "$target" =~ list=([^& \n]*) ]]; then
-      id=${BASH_REMATCH[0]%&}
-      id=${id#\?list=}
+      id=${BASH_REMATCH[0]}
     fi
 
     # deduplication..
@@ -56,6 +55,7 @@ ynkr:get-playlist-info() {
     "--flat-playlist"
     "--dump-single-json"
     "--no-warnings"
+    "--yes-playlist"
     "$PID"
   )
   ytcmd="yt-dlp"
