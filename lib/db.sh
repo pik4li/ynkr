@@ -102,7 +102,7 @@ SQL
 
   if [[ -n "$playlist" ]]; then
     playlist_esc=$(_sql_escape "$playlist")
-    log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} playlist=${ANSI[green]}${playlist@Q}"
+    log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} playlist=${ANSI[green]}$(db:get-song-name "$playlist")"
 
     sqlite3 "$DB" <<SQL
 INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id)
