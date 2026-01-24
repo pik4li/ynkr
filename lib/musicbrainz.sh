@@ -40,7 +40,7 @@ _sanitize_filename() {
 
 _mb_read_file_metadata() {
   local file="$1"
-  local field="$2"  # artist, album, title
+  local field="$2" # artist, album, title
   ffprobe -v quiet -show_entries format_tags="$field" \
     -of default=noprint_wrappers=1:nokey=1 "$file" 2>/dev/null
 }
@@ -53,7 +53,7 @@ _mb_rate_limit() {
   local diff=$((now - _MB_LAST_REQUEST))
   if ((diff < MB_RATE_LIMIT)); then
     local wait=$((MB_RATE_LIMIT - diff))
-    log info "${ANSI[blue]}mb:${ANSI[nc]} Rate limiting - sleeping ${wait}s"
+    log info "${ANSI[blue]}[mb:]${ANSI[nc]} Rate limiting - sleeping ${wait}s"
     sleep "$wait"
   fi
   _MB_LAST_REQUEST=$(date +%s)
@@ -100,7 +100,7 @@ _mb_extract_album() {
 
 _mb_ytdlp_fallback() {
   local yt_id="$1"
-  log info "${ANSI[blue]}mb:${ANSI[nc]} Using yt-dlp fallback for ${ANSI[cyan]}${yt_id}${ANSI[nc]}"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} Using yt-dlp fallback for ${ANSI[cyan]}${yt_id}${ANSI[nc]}"
   yt-dlp --dump-single-json --no-warnings "https://youtube.com/watch?v=${yt_id}" 2>/dev/null |
     jq -r '.channel // .uploader // "Unknown Artist"'
 }
@@ -136,7 +136,7 @@ _mb_move_file() {
 
   # Create directory
   if ! mkdir -p "$dest_dir"; then
-    log err "${ANSI[blue]}mb:_move_file:${ANSI[nc]} ${ANSI[red]}Failed to create directory: ${dest_dir}"
+    log err "${ANSI[blue]}[mb:_move_file:]${ANSI[nc]} ${ANSI[red]}Failed to create directory: ${dest_dir}"
     return 1
   fi
 
@@ -148,11 +148,11 @@ _mb_move_file() {
   done
 
   if mv "$src" "$dest_path"; then
-    log info "${ANSI[blue]}mb:${ANSI[nc]} Moved to ${ANSI[cyan]}${dest_path}${ANSI[nc]}"
+    log info "${ANSI[blue]}[mb:]${ANSI[nc]} Moved to ${ANSI[cyan]}${dest_path}${ANSI[nc]}"
     printf '%s' "$dest_path"
     return 0
   else
-    log err "${ANSI[blue]}mb:${ANSI[nc]} ${ANSI[red]}Failed to move${ANSI[nc]} ${src} -> ${dest_path}"
+    log err "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[red]}Failed to move${ANSI[nc]} ${src} -> ${dest_path}"
     return 1
   fi
 }
@@ -170,7 +170,7 @@ _mb_process_file() {
   # Get title from database
   title=$(db:get-song-name "$yt_id")
   if [[ -z "$title" ]]; then
-    log warn "${ANSI[blue]}mb:${ANSI[nc]} No title in DB for ${yt_id}"
+    log warn "${ANSI[blue]}[mb:]${ANSI[nc]} No title in DB for ${yt_id}"
     db:tag-song "$yt_id" "mb_error"
     return 1
   fi
@@ -179,7 +179,7 @@ _mb_process_file() {
   file_artist=$(_mb_read_file_metadata "$file" "artist")
   file_album=$(_mb_read_file_metadata "$file" "album")
 
-  log info "${ANSI[blue]}mb:${ANSI[nc]} Processing ${ANSI[cyan]}$title${ANSI[nc]} (file_artist=${ANSI[magenta]}$file_artist${ANSI[nc]})"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} Processing ${ANSI[cyan]}$title${ANSI[nc]} (file_artist=${ANSI[magenta]}$file_artist${ANSI[nc]})"
 
   # Rate limit before API call
   _mb_rate_limit
@@ -199,12 +199,12 @@ _mb_process_file() {
   # 3. Nothing -> yt-dlp fallback
   if [[ -z "$artist" ]]; then
     if [[ -n "$file_artist" ]]; then
-      log info "${ANSI[blue]}mb:${ANSI[nc]} Using file metadata artist: ${ANSI[cyan]}$file_artist${ANSI[nc]}"
+      log info "${ANSI[blue]}[mb:]${ANSI[nc]} Using file metadata artist: ${ANSI[cyan]}$file_artist${ANSI[nc]}"
       artist="$file_artist"
       album="${file_album:-singles}"
       db:tag-song "$yt_id" "mb_file_fallback"
     else
-      log info "${ANSI[blue]}mb:${ANSI[nc]} ${ANSI[yellow]}No MB results, using yt-dlp fallback${ANSI[nc]}"
+      log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[yellow]}No MB results, using yt-dlp fallback${ANSI[nc]}"
       artist=$(_mb_ytdlp_fallback "$yt_id")
       db:tag-song "$yt_id" "mb_fallback"
     fi
@@ -241,12 +241,12 @@ _mb_process_file() {
   db:tag-song "$yt_id" "organized"
   db:update-song-metadata "$yt_id" "$artist" "$album" "$path"
 
-  log info "${ANSI[blue]}mb:${ANSI[nc]} ${ANSI[green]}Organized${ANSI[nc]} ${ANSI[cyan]}$title${ANSI[nc]} -> ${ANSI[magenta]}${artist}/${album}${ANSI[nc]}"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[green]}Organized${ANSI[nc]} ${ANSI[cyan]}$title${ANSI[nc]} -> ${ANSI[magenta]}${artist}/${album}${ANSI[nc]}"
   return 0
 }
 
 mb:process() {
-  log info "${ANSI[blue]}mb:${ANSI[nc]} ${ANSI[green]}Starting MusicBrainz processing${ANSI[nc]}"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[green]}Starting MusicBrainz processing${ANSI[nc]}"
 
   # Ensure MUSIC_DIR exists
   [[ -d "$MUSIC_DIR" ]] || mkdir -p "$MUSIC_DIR"
@@ -262,11 +262,11 @@ mb:process() {
 
   local count=${#files[@]}
   if ((count == 0)); then
-    log info "${ANSI[blue]}mb:${ANSI[nc]} No files to process"
+    log info "${ANSI[blue]}[mb:]${ANSI[nc]} No files to process"
     return 0
   fi
 
-  log info "${ANSI[blue]}mb:${ANSI[nc]} Found ${ANSI[cyan]}${count}${ANSI[nc]} files to process"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} Found ${ANSI[cyan]}${count}${ANSI[nc]} files to process"
 
   # Process up to MB_MAX_BATCH files
   local processed=0
@@ -275,5 +275,5 @@ mb:process() {
     _mb_process_file "$file" && ((processed++))
   done
 
-  log info "${ANSI[blue]}mb:${ANSI[nc]} ${ANSI[green]}Processed${ANSI[nc]} ${ANSI[cyan]}${processed}/${count}${ANSI[nc]} files"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[green]}Processed${ANSI[nc]} ${ANSI[cyan]}${processed}/${count}${ANSI[nc]} files"
 }

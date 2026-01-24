@@ -2,7 +2,7 @@
 ynkr:parse-playlist-file() {
   local file="/app/playlists"
   [[ -n "$file" && -f "$file" ]] || {
-    log error "$file - was not found!"
+    log error "${ANSI[cyan]}[ynkr:parse-playlist-file:] ${ANSI[red]}${file@Q} was not found!"
     exit 1
   }
 
@@ -11,7 +11,7 @@ ynkr:parse-playlist-file() {
     [[ -n "$name" ]] || name="unknown"
 
     YNKR_PLAYLIST[$name]="$url"
-    log info "${ANSI[magenta]}ynkr:parse-playlist-file:${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=$url${ANSI[green]}${ANSI[nc]}"
+    log info "${ANSI[magenta]}[ynkr:parse-playlist-file:]${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=$url${ANSI[green]}${ANSI[nc]}"
   done <"$file"
 
   if $DEBUG; then
@@ -70,7 +70,7 @@ ynkr:song() {
   [[ -n "$yid" ]] || return 1
   local url="https://youtube.com/watch?v=$yid"
 
-  log info "${ANSI[red]}:YT-DLP:${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[cyan]}$name${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
+  log info "${ANSI[magenta]}[:YT-DLP:]${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[cyan]}$name${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
 
   local cmd="yt-dlp"
   local args=()
@@ -83,8 +83,9 @@ ynkr:song() {
     "--audio-quality=0"
     "--concurrent-fragments=3"
     "--retries=5"
-    "--progress" "--newline"
+    "--progress"
     "--color=always"
+    "--quiet"
     # "--abort-on-error"
     "$url"
   )
@@ -98,12 +99,12 @@ ynkr:meta() {
     local tmp=() t f
     mapfile tmp < <(ls "$DOWNLOADS/" 2>/dev/null)
     ((${#tmp[@]} > 0)) || {
-      log warn "${ANSI[magenta]}ynkr:meta:${ANSI[nc]} No files to process.."
+      log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} No files to process.."
       for t in {10..0}; do
         sleep 1
 
         ((t == 10 || t < 6)) &&
-          log warn "${ANSI[magenta]}ynkr:meta:${ANSI[nc]}Next filecheck in: ${ANSI[cyan]}${t}"
+          log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]}Next filecheck in: ${ANSI[cyan]}${t}"
       done
       continue
     }
@@ -113,7 +114,7 @@ ynkr:meta() {
       files+=("${f%.*}")
     done
 
-    log info "${ANSI[magenta]}ynkr:meta:${ANSI[nc]} Found ${ANSI[green]}${#files[@]}${ANSI[nc]} files to process"
+    log info "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} Found ${ANSI[green]}${#files[@]}${ANSI[nc]} files to process"
 
     # Process downloaded files with MusicBrainz
     mb:process
@@ -123,7 +124,7 @@ ynkr:meta() {
       sleep 1
 
       ((t == 30 || t == 20 || t == 10 || t < 6)) &&
-        log info "${ANSI[magenta]}ynkr:meta:${ANSI[nc]} Next processing in: ${ANSI[cyan]}${t}"
+        log info "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} Next processing in: ${ANSI[cyan]}${t}"
     done
   done
 }

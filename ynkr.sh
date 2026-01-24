@@ -49,13 +49,13 @@ download() {
   for id in "${songs[@]}"; do
     local name
     name="$(db:get-song-name "$id")"
-    log info "${ANSI[red]}download${ANSI[nc]} - ${name}:${id}"
+    log info "${ANSI[red]}[download]${ANSI[nc]} - ${name}:${id}"
 
     if ynkr:song "$id" "$name"; then
-      log info "${ANSI[green]}Downloaded: $name - $id"
+      log info "${ANSI[green]}[Downloaded] ${name@Q} - ${id@Q}"
       db:mark-downloaded "$id"
     else
-      log warn "${ANSI[yellow]}Failed: $name - $id"
+      log warn "${ANSI[yellow]}[Failed] ${name@Q} - ${id@Q}"
       db:mark-failed "$id"
     fi
 

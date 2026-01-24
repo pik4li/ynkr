@@ -16,7 +16,7 @@ db:init() {
   [[ -n "$DB" ]] || exit
   [[ -f "$DB" ]] || touch "$DB"
 
-  log info "${ANSI[yellow]}db:init:${ANSI[nc]} Initializing database"
+  log info "${ANSI[yellow]}[db:init:]${ANSI[nc]} Initializing database"
 
   sqlite3 "$DB" <<'SQL'
 PRAGMA foreign_keys = ON;
@@ -77,7 +77,7 @@ db:add-playlist() {
   local name_esc yt_id_esc
   name_esc=$(_sql_escape "$name")
   yt_id_esc=$(_sql_escape "$yt_id")
-  log info "${ANSI[yellow]}db:add-playlist:${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | id=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
+  log info "${ANSI[yellow]}[db:add-playlist:]${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | id=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
   sqlite3 "$DB" <<SQL
 INSERT INTO playlists (name, yt_id)
@@ -93,7 +93,7 @@ db:add-song() {
   local name_esc yt_id_esc playlist_esc
   name_esc=$(_sql_escape "$name")
   yt_id_esc=$(_sql_escape "$yt_id")
-  log info "${ANSI[yellow]}db:add-song:${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | ytid=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
+  log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | ytid=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
   sqlite3 "$DB" <<SQL
 INSERT OR IGNORE INTO songs (name, yt_id)
@@ -102,7 +102,7 @@ SQL
 
   if [[ -n "$playlist" ]]; then
     playlist_esc=$(_sql_escape "$playlist")
-    log info "${ANSI[yellow]}db:add-song:${ANSI[nc]} playlist=${ANSI[green]}${playlist@Q}"
+    log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} playlist=${ANSI[green]}${playlist@Q}"
 
     sqlite3 "$DB" <<SQL
 INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id)
@@ -177,7 +177,7 @@ db:update-song-name() {
   local id="$1" newname="$2"
   local newname_esc
   newname_esc=$(_sql_escape "$newname")
-  log info "db:update-song-name: id=$id | name=$newname"
+  log info "${ANSI[yellow]}[db:update-song-name:]${ANSI[nc]} id=${ANSI[cyan]}$id${ANSI[nc]} | name=${ANSI[magenta]}$newname"
 
   sqlite3 "$DB" <<SQL
 UPDATE songs SET name='$newname_esc' WHERE yt_id='$id';
@@ -191,7 +191,7 @@ db:update-song-metadata() {
   artist_esc=$(_sql_escape "$artist")
   album_esc=$(_sql_escape "$album")
   path_esc=$(_sql_escape "$path")
-  log info "db:update-song-metadata: id=$yt_id | artist=$artist | album=$album"
+  log info "${ANSI[yellow]}[db:update-song-metadata:]${ANSI[nc]} id=${ANSI[red]}$yt_id${ANSI[nc]} | artist=${ANSI[cyan]}$artist${ANSI[nc]} | album=${ANSI[blue]}$album"
 
   sqlite3 "$DB" <<SQL
 UPDATE songs SET artist='$artist_esc', album='$album_esc', file_path='$path_esc'
