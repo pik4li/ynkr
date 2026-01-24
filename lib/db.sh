@@ -68,6 +68,8 @@ db:migrate-mb() {
   [[ "$cols" == *"artist"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artist TEXT;"
   [[ "$cols" == *"album"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN album TEXT;"
   [[ "$cols" == *"file_path"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN file_path TEXT;"
+  # artists = all artists semicolon-separated (for Jellyfin ARTISTS tag)
+  [[ "$cols" == *"artists"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artists TEXT;"
 }
 
 # ---------- playlists ----------
@@ -192,16 +194,17 @@ SQL
 }
 
 db:update-song-metadata() {
-  local yt_id="$1" artist="$2" album="$3" path="$4"
-  local yt_id_esc artist_esc album_esc path_esc
+  local yt_id="$1" artist="$2" album="$3" path="$4" artists="${5:-}"
+  local yt_id_esc artist_esc album_esc path_esc artists_esc
   yt_id_esc=$(_sql_escape "$yt_id")
   artist_esc=$(_sql_escape "$artist")
   album_esc=$(_sql_escape "$album")
   path_esc=$(_sql_escape "$path")
-  log info "${ANSI[yellow]}[db:update-song-metadata:]${ANSI[nc]} id=${ANSI[red]}$yt_id${ANSI[nc]} | artist=${ANSI[cyan]}$artist${ANSI[nc]} | album=${ANSI[blue]}$album"
+  artists_esc=$(_sql_escape "$artists")
+  log info "${ANSI[yellow]}[db:update-song-metadata:]${ANSI[nc]} id=${ANSI[red]}$yt_id${ANSI[nc]} | artist=${ANSI[cyan]}$artist${ANSI[nc]} | artists=${ANSI[magenta]}$artists${ANSI[nc]} | album=${ANSI[blue]}$album"
 
   sqlite3 "$DB" <<SQL
-UPDATE songs SET artist='$artist_esc', album='$album_esc', file_path='$path_esc'
+UPDATE songs SET artist='$artist_esc', album='$album_esc', file_path='$path_esc', artists='$artists_esc'
 WHERE yt_id='$yt_id_esc';
 SQL
 }
@@ -314,6 +317,7 @@ SQL
         s.yt_id,
         s.name,
         s.artist,
+        s.artists,
         s.album,
         COALESCE(GROUP_CONCAT(t.name, ', '), '') AS tags
       FROM songs s

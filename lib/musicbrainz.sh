@@ -85,8 +85,32 @@ _mb_search() {
 _mb_extract_artist() {
   local json="$1"
   local artist
+  # Get primary artist (first in credit)
   artist=$(printf '%s' "$json" | jq -r '.recordings[0]["artist-credit"][0].name // empty')
   [[ -n "$artist" ]] && printf '%s' "$artist"
+}
+
+_mb_extract_all_artists() {
+  # Extract all artists from MusicBrainz artist-credit array
+  # Returns semicolon-separated list: "Artist1; Artist2; Artist3"
+  local json="$1"
+  local artists
+
+  # MusicBrainz artist-credit is an array like:
+  # [{"name": "Artist1", "joinphrase": " feat. "}, {"name": "Artist2", "joinphrase": ""}]
+  # Extract all names and join with semicolon
+  artists=$(printf '%s' "$json" | jq -r '
+    .recordings[0]["artist-credit"]
+    | if . then
+        [.[] | .name // empty]
+        | map(select(. != null and . != ""))
+        | join("; ")
+      else
+        empty
+      end
+  ')
+
+  [[ -n "$artists" ]] && printf '%s' "$artists"
 }
 
 _mb_is_valid_album() {
@@ -211,7 +235,7 @@ _mb_move_file() {
 
 _mb_process_file() {
   local file="$1"
-  local yt_id artist album title file_artist file_album path
+  local yt_id artist artists album title file_artist file_album path
 
   # Extract yt_id from filename
   yt_id=$(basename "$file")
@@ -240,6 +264,7 @@ _mb_process_file() {
 
   if [[ -n "$json" ]]; then
     artist=$(_mb_extract_artist "$json")
+    artists=$(_mb_extract_all_artists "$json")  # Get all artists for Jellyfin
     album=$(_mb_extract_album "$json" "$title" "$file_artist")
   fi
 
@@ -251,14 +276,19 @@ _mb_process_file() {
     if [[ -n "$file_artist" ]]; then
       log info "${ANSI[blue]}[mb:]${ANSI[nc]} Using file metadata artist: ${ANSI[cyan]}$file_artist${ANSI[nc]}"
       artist="$file_artist"
+      artists="$file_artist"  # Single artist from file metadata
       album="${file_album:-singles}"
       db:tag-song "$yt_id" "mb_file_fallback"
     else
       log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[yellow]}No MB results, using yt-dlp fallback${ANSI[nc]}"
       artist=$(_mb_ytdlp_fallback "$yt_id")
+      artists="$artist"  # Single artist from yt-dlp
       db:tag-song "$yt_id" "mb_fallback"
     fi
   fi
+
+  # Default artists to primary artist if still empty
+  [[ -z "$artists" ]] && artists="$artist"
 
   # Use file album if MB didn't return one but file has it
   if [[ -z "$album" && -n "$file_album" ]]; then
@@ -287,11 +317,11 @@ _mb_process_file() {
     return 1
   fi
 
-  # Update database
+  # Update database (include all artists for Jellyfin)
   db:tag-song "$yt_id" "organized"
-  db:update-song-metadata "$yt_id" "$artist" "$album" "$path"
+  db:update-song-metadata "$yt_id" "$artist" "$album" "$path" "$artists"
 
-  log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[green]}Organized${ANSI[nc]} ${ANSI[cyan]}$title${ANSI[nc]} -> ${ANSI[magenta]}${artist}/${album}${ANSI[nc]}"
+  log info "${ANSI[blue]}[mb:]${ANSI[nc]} ${ANSI[green]}Organized${ANSI[nc]} ${ANSI[cyan]}$title${ANSI[nc]} -> ${ANSI[magenta]}${artist}/${album}${ANSI[nc]} (artists: ${artists})"
   return 0
 }
 

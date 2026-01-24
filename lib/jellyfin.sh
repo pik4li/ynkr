@@ -74,14 +74,14 @@ _jf_clean_title() {
   )
 
   for pattern in "${patterns[@]}"; do
-    # Use sed for regex replacement (bash parameter expansion doesn't support regex)
-    title=$(printf '%s' "$title" | sed -E "s/$pattern//gi")
+    # Use sed for regex replacement with | delimiter (avoids issues with / in patterns)
+    title=$(printf '%s' "$title" | sed -E "s|$pattern||gi")
   done
 
   # Clean up whitespace
-  title=$(printf '%s' "$title" | sed -E 's/\s+/ /g')
-  title=$(printf '%s' "$title" | sed -E 's/^\s*[-–—]+\s*//')
-  title=$(printf '%s' "$title" | sed -E 's/\s*[-–—]+\s*$//')
+  title=$(printf '%s' "$title" | sed -E 's|\s+| |g')
+  title=$(printf '%s' "$title" | sed -E 's|^\s*[-–—]+\s*||')
+  title=$(printf '%s' "$title" | sed -E 's|\s*[-–—]+\s*$||')
   title=$(printf '%s' "$title" | xargs)  # trim
 
   printf '%s' "$title"
@@ -102,9 +102,9 @@ _jf_extract_featured() {
 
   if [[ -n "$feat_match" ]]; then
     # Remove the feat./ft./featuring prefix
-    featured=$(printf '%s' "$feat_match" | sed -E 's/^(feat\.|ft\.|featuring)\s+//i')
+    featured=$(printf '%s' "$feat_match" | sed -E 's|^(feat\.|ft\.|featuring)\s+||i')
     # Split on & , and
-    featured=$(printf '%s' "$featured" | sed -E 's/\s*&\s*/; /g; s/\s*,\s*/; /g; s/\s+and\s+/; /gi')
+    featured=$(printf '%s' "$featured" | sed -E 's|\s*&\s*|; |g; s|\s*,\s*|; |g; s|\s+and\s+|; |gi')
   fi
 
   printf '%s' "$featured"
@@ -113,10 +113,10 @@ _jf_extract_featured() {
 _jf_remove_featured_from_title() {
   local title="$1"
 
-  # Remove featured artist notation from title
-  title=$(printf '%s' "$title" | sed -E 's/\s+(feat\.|ft\.|featuring)\s+[^(\[]+//gi')
-  title=$(printf '%s' "$title" | sed -E 's/\s*\((feat\.|ft\.|featuring)\s+[^)]+\)//gi')
-  title=$(printf '%s' "$title" | sed -E 's/\s*\[(feat\.|ft\.|featuring)\s+[^]]+\]//gi')
+  # Remove featured artist notation from title (use | delimiter to avoid issues)
+  title=$(printf '%s' "$title" | sed -E 's|\s+(feat\.|ft\.|featuring)\s+[^(\[]+||gi')
+  title=$(printf '%s' "$title" | sed -E 's|\s*\((feat\.|ft\.|featuring)\s+[^)]+\)||gi')
+  title=$(printf '%s' "$title" | sed -E 's|\s*\[(feat\.|ft\.|featuring)\s+[^\]]+\]||gi')
 
   printf '%s' "$title" | xargs
 }
@@ -126,18 +126,18 @@ _jf_remove_featured_from_title() {
 _jf_normalize_artist_separators() {
   local artist="$1"
 
-  # Normalize separators to semicolon for Jellyfin
+  # Normalize separators to semicolon for Jellyfin (use | delimiter)
   # & -> ;
   # , -> ;
   # " and " -> ;
   # " x " -> ;
-  artist=$(printf '%s' "$artist" | sed -E 's/\s*&\s*/; /g')
-  artist=$(printf '%s' "$artist" | sed -E 's/\s*,\s*/; /g')
-  artist=$(printf '%s' "$artist" | sed -E 's/\s+and\s+/; /gi')
-  artist=$(printf '%s' "$artist" | sed -E 's/\s+x\s+/; /gi')
+  artist=$(printf '%s' "$artist" | sed -E 's|\s*&\s*|; |g')
+  artist=$(printf '%s' "$artist" | sed -E 's|\s*,\s*|; |g')
+  artist=$(printf '%s' "$artist" | sed -E 's|\s+and\s+|; |gi')
+  artist=$(printf '%s' "$artist" | sed -E 's|\s+x\s+|; |gi')
 
   # Clean up multiple semicolons
-  artist=$(printf '%s' "$artist" | sed -E 's/;\s*;/;/g')
+  artist=$(printf '%s' "$artist" | sed -E 's|;\s*;|;|g')
   artist=$(printf '%s' "$artist" | xargs)
 
   printf '%s' "$artist"
@@ -290,14 +290,15 @@ _jf_write_tags() {
 
 _jf_process_file() {
   local file="$1"
-  local yt_id artist album title
+  local yt_id artist artists album title
 
   # Escape file path for SQL (single quotes)
   local file_esc="${file//\'/\'\'}"
 
   # Look up by file_path (files are named by title after mb:process)
+  # Include 'artists' column (semicolon-separated from MusicBrainz)
   local db_data
-  db_data=$(db "SELECT yt_id, name, artist, album FROM songs WHERE file_path='$file_esc';" 2>&1)
+  db_data=$(db "SELECT yt_id, name, artist, album, artists FROM songs WHERE file_path='$file_esc';" 2>&1)
 
   if [[ -z "$db_data" || "$db_data" == *"Error"* ]]; then
     log warn "${ANSI[green]}[jf:]${ANSI[nc]} No DB entry for file: ${ANSI[cyan]}${file}${ANSI[nc]}"
@@ -305,10 +306,10 @@ _jf_process_file() {
     return 1
   fi
 
-  # Parse tab-separated values
-  IFS=$'\t' read -r yt_id title artist album <<< "$db_data"
+  # Parse tab-separated values (now includes artists from DB)
+  IFS=$'\t' read -r yt_id title artist album artists <<< "$db_data"
 
-  [[ -z "$title" ]] && title=$(basename "$file" | sed 's/\.[^.]*$//')
+  [[ -z "$title" ]] && title=$(basename "$file" | sed 's|\..*$||')
   [[ -z "$artist" ]] && artist="Unknown Artist"
   [[ -z "$album" ]] && album="singles"
 
@@ -318,16 +319,22 @@ _jf_process_file() {
   local clean_title
   clean_title=$(_jf_clean_title "$title")
 
-  # Extract featured artists before removing from title
+  # Extract featured artists from title (in case not in MusicBrainz)
   local featured
   featured=$(_jf_extract_featured "$clean_title")
 
   # Remove featured notation from title
   clean_title=$(_jf_remove_featured_from_title "$clean_title")
 
-  # Format artists for Jellyfin (semicolon-separated list)
+  # Build artists field: prefer DB artists, merge with featured from title
   local artists_field
-  artists_field=$(_jf_format_artists_for_jellyfin "$artist" "$featured")
+  if [[ -n "$artists" ]]; then
+    # Use MusicBrainz artists from DB, add any additional featured from title
+    artists_field=$(_jf_format_artists_for_jellyfin "$artists" "$featured")
+  else
+    # No DB artists, build from primary artist + featured from title
+    artists_field=$(_jf_format_artists_for_jellyfin "$artist" "$featured")
+  fi
 
   # Determine album artist
   local album_artist
