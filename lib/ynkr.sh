@@ -30,7 +30,7 @@ ynkr:get-playlist-ids() {
     local id
     local target="${PLAYLIST[$idx]}"
 
-    if [[ "$target" =~ (\?list=.*\&) ]]; then
+    if [[ "$target" =~ list=([^& \n]*) ]]; then
       id=${BASH_REMATCH[0]%&}
       id=${id#\?list=}
     fi
