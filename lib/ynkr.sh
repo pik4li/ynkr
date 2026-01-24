@@ -54,12 +54,14 @@ ynkr:get-playlist-info() {
 
 ynkr:get-song-titles() {
   local info=$1
-  printf "%s" "$info" | jq -r '.entries[].title'
+  # Filter out entries with null/empty titles (unavailable videos)
+  printf "%s" "$info" | jq -r '.entries[] | select(.title != null and .title != "") | .title'
 }
 
 ynkr:get-song-ids() {
   local info=$1
-  printf "%s" "$info" | jq -r '.entries[].id'
+  # Filter out entries with null/empty titles (unavailable videos)
+  printf "%s" "$info" | jq -r '.entries[] | select(.title != null and .title != "") | .id'
 }
 
 ynkr:song() {
@@ -70,7 +72,7 @@ ynkr:song() {
   [[ -n "$yid" ]] || return 1
   local url="https://youtube.com/watch?v=$yid"
 
-  log info "${ANSI[magenta]}[:YT-DLP:]${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[cyan]}$name${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
+  log info "${ANSI[magenta]}[:YT-DLP:]${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[cyan]}${name@Q}${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
 
   local cmd="yt-dlp"
   local args=()

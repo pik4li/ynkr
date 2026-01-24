@@ -17,7 +17,9 @@
 declare DB="${YNKR_DB:-./db/ynkr.db}"
 declare DOWNLOADS="${YNKR_DOWNLOADS:-./downloads}"
 declare MUSIC_DIR="${YNKR_MUSIC:-./music}"
-declare YNKR_DEBUG=${YNKR_DEBUG:-false}
+declare YNKR_DEBUG=${DEBUG:-false}
+
+declare -A YNKR_FAILED_DOWNLOADS
 
 # YNKR_DEBUG=true
 

@@ -58,6 +58,7 @@ download() {
     else
       log warn "${ANSI[yellow]}[Failed] ${name@Q} - ${id@Q}"
       db:mark-failed "$id"
+      YNKR_FAILED_DOWNLOADS[$id]="$name"
     fi
 
     sleep .005
@@ -68,19 +69,19 @@ main() {
   while true; do
     prepare
     if $YNKR_DEBUG; then
-      db:show
+      db:show >&2
     fi
 
     download
 
     if $YNKR_DEBUG; then
-      db:show
-      db:show playlists
-      db:show songs
+      db:show >&2
+      db:show playlists >&2
+      db:show songs >&2
 
       sleep 3
 
-      tree "$MUSIC_DIR"
+      tree "$MUSIC_DIR" >&2
     fi
 
     log info "${ANSI[yellow]}YNKR - Done"
