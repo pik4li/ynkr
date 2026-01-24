@@ -76,7 +76,7 @@ ynkr:song() {
   [[ -n "$yid" ]] || return 1
   local url="https://youtube.com/watch?v=$yid"
 
-  log info "${ANSI[red]}:YT-DLP:${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[CYAN]}$name${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
+  log info "${ANSI[red]}:YT-DLP:${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[cyan]}$name${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
 
   local cmd="yt-dlp"
   local args=()
@@ -84,14 +84,14 @@ ynkr:song() {
     "--extract-audio"
     "--paths=$DOWNLOADS/"
     "--output=$yid"
+    "--download-archive=$YT_ARCHIVE.yt"
     "--embed-thumbnail"
     "--embed-metadata"
     "--audio-quality=0"
     "--concurrent-fragments=3"
     "--retries=5"
-    "--download-archive=$YT_ARCHIVE.yt"
     "--progress" "--newline"
-    # "--print=%(colors.green)s[▶]%(colors.reset)s %(title)s\n%(colors.blue)s[]%(colors.reset)s %(uploader)s  %(colors.magenta)s[]%(colors.reset)s %(duration_string)s  %(colors.cyan)s[󰍹]%(colors.reset)s %(resolution)s  %(colors.yellow)s[]%(colors.reset)s %(format_note)s\n%(colors.gray)s[]%(colors.reset)s %(webpage_url)s\n"
+    "--color"
     "$url"
   )
 
