@@ -43,14 +43,25 @@ ynkr:get-playlist-ids() {
       id=${BASH_REMATCH[1]}
     fi
 
-    # deduplication..
-    for s in "${songs[@]}"; do
-      [[ -n "$s" ]] || continue
+    if $YNKR_DEBUG; then
+      log info "${ASCI[blue]}Songs-To-Process: ${songs[*]}"
+    fi
 
-      if [[ "$s" == "$id" ]]; then
-        continue 2
-      fi
-    done
+    case "$id" in
+    *"${songs[*]}"*)
+      log info "${ASCI[yellow]}[ynkr:get-playlist-ids] Skipping ${ANSI[magenta]}$id"
+      continue
+      ;;
+    esac
+
+    # deduplication..
+    # for s in "${songs[@]}"; do
+    #   [[ -n "$s" ]] || continue
+    #
+    #   if [[ "$s" == "$id" ]]; then
+    #     continue 2
+    #   fi
+    # done
     [[ -n "$id" ]] || continue
 
     # overwrite the url with the id in the array
