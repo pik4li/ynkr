@@ -2,6 +2,7 @@
 
 declare DB="/app/db/ynkr.db"
 declare DOWNLOADS="/app/downloads"
+declare MUSIC_DIR="/app/music"
 declare DEBUG=true
 
 declare -A YNKR_PLAYLIST

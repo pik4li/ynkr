@@ -55,6 +55,19 @@ CREATE TABLE IF NOT EXISTS song_tags (
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 SQL
+
+  # Run migrations
+  db:migrate-mb
+}
+
+# ---------- migrations ----------
+
+db:migrate-mb() {
+  local cols
+  cols=$(sqlite3 "$DB" "PRAGMA table_info(songs);" | cut -d'|' -f2)
+  [[ "$cols" == *"artist"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artist TEXT;"
+  [[ "$cols" == *"album"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN album TEXT;"
+  [[ "$cols" == *"file_path"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN file_path TEXT;"
 }
 
 # ---------- playlists ----------
@@ -171,6 +184,21 @@ UPDATE songs SET name='$newname_esc' WHERE yt_id='$id';
 SQL
 }
 
+db:update-song-metadata() {
+  local yt_id="$1" artist="$2" album="$3" path="$4"
+  local yt_id_esc artist_esc album_esc path_esc
+  yt_id_esc=$(_sql_escape "$yt_id")
+  artist_esc=$(_sql_escape "$artist")
+  album_esc=$(_sql_escape "$album")
+  path_esc=$(_sql_escape "$path")
+  log info "db:update-song-metadata: id=$yt_id | artist=$artist | album=$album"
+
+  sqlite3 "$DB" <<SQL
+UPDATE songs SET artist='$artist_esc', album='$album_esc', file_path='$path_esc'
+WHERE yt_id='$yt_id_esc';
+SQL
+}
+
 db:get-pending() {
   db "
   SELECT s.yt_id, s.name
@@ -242,7 +270,7 @@ SQL
     sqlite3 -column -header "$DB" "SELECT id, yt_id, name, created_at FROM playlists;"
     ;;
   songs)
-    sqlite3 -column -header "$DB" "SELECT id, yt_id, name FROM songs;"
+    sqlite3 -column -header "$DB" "SELECT id, yt_id, name, artist, album, file_path FROM songs;"
     ;;
   tags)
     sqlite3 -column -header "$DB" "SELECT id, name FROM tags;"

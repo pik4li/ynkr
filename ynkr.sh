@@ -6,12 +6,11 @@ cd "${0%/*}" >/dev/null 2>&1 || : # cd's into the right dir for sourcing..
 . lib/log.sh
 . lib/ynkr.sh
 . lib/db.sh
+. lib/musicbrainz.sh
 
 prepare() {
   ynkr:parse-playlist-file            # parses the playlist file and gets the variables right
   ynkr:get-playlist-ids YNKR_PLAYLIST # replaces the urls with the actual playlist ids
-
-  ynkr:meta &
 
   local name
 
@@ -61,13 +60,16 @@ download() {
 }
 
 main() {
+  ynkr:meta &
   while true; do
+
     prepare
     if $DEBUG; then
       db:show
       db:show playlists
       db:show songs
     fi
+
     download
     if $DEBUG; then
       db:show
@@ -75,8 +77,8 @@ main() {
       db:show songs
     fi
 
-    log info "YNKR - Done"
-    log warn "Sleeping for the next $SLEEP seconds"
+    log info "${ANSI[yellow]}YNKR - Done"
+    log warn "${ANSI[yellow]}Sleeping for the next ${ANSI[red]}$SLEEP${ANSI[yellow]} seconds"
 
     sleep $SLEEP
   done

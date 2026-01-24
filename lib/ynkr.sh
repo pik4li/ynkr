@@ -98,25 +98,28 @@ ynkr:song() {
 ynkr:meta() {
   while true; do
     local tmp=()
-    mapfile tmp < <(ls "$DOWNLOADS/")
-    ((${#tmp} > 0)) || continue
+    mapfile tmp < <(ls "$DOWNLOADS/" 2>/dev/null)
+    ((${#tmp[@]} > 0)) || {
+      sleep 10
+      continue
+    }
 
     local files=()
     for f in "${tmp[@]}"; do
       files+=("${f%.*}")
     done
 
-    for id in "${files[@]}"; do
-      local name
-      name=$(db:get-song-name "$id")
-    done
+    log info "${ANSI[magenta]}ynkr:meta:${ANSI[nc]} Found ${ANSI[green]}${#files[@]}${ANSI[nc]} files to process"
 
-    log info "Found files to process:"
-    printf "<${ANSI[green]}%s${ANSI[nc]}>\n" "${files[@]}"
-    for ((s = 50; s > 0; s--)); do
+    # Process downloaded files with MusicBrainz
+    mb:process
+
+    # Sleep before next iteration
+    for t in {30..0}; do
       sleep 1
-      log info "$s.."
+
+      ((t == 30 || t == 20 || t == 10 || t < 6)) &&
+        log info "${ANSI[magenta]}ynkr:meta:${ANSI[nc]} Next processing in: ${ANSI[cyan]}${t}"
     done
-    log info "0.."
   done
 }
