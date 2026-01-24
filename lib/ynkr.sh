@@ -82,11 +82,10 @@ ynkr:song() {
     "--embed-metadata"
     "--audio-quality=0"
     "--concurrent-fragments=3"
-    "--retries=5"
-    "--progress"
-    "--color=always"
     "--quiet"
-    # "--abort-on-error"
+    "--progress" "--newline"
+    "--color=always"
+    "--retries=5"
     "$url"
   )
 
