@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
 ynkr:parse-playlist-file() {
   local file="/app/playlists"
-  local count=0
   [[ -n "$file" && -f "$file" ]] || {
     log error "$file - was not found!"
     exit 1
   }
 
-  # IFS="="
   while read -r url; do
-    ((count++))
-    url=${url% }
-    url=${url# }
     name="$(ynkr:get-playlist-info "$url" | jq -r '.title')"
     [[ -n "$name" ]] || name="unknown"
 
     YNKR_PLAYLIST[$name]="$url"
-    log info "${ANSI[magenta]}ynkr:parse-playlist-file:${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=${ANSI[green]}${ANSI[nc]}"
+    log info "${ANSI[magenta]}ynkr:parse-playlist-file:${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=$url${ANSI[green]}${ANSI[nc]}"
   done <"$file"
+
+  if $DEBUG; then
+    declare -p YNKR_PLAYLIST
+  fi
 }
 
 # parses the id from the playlist url
@@ -96,10 +95,16 @@ ynkr:song() {
 # should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
   while true; do
-    local tmp=()
+    local tmp=() t f
     mapfile tmp < <(ls "$DOWNLOADS/" 2>/dev/null)
     ((${#tmp[@]} > 0)) || {
-      sleep 10
+      log warn "${ANSI[magenta]}ynkr:meta:${ANSI[nc]} No files to process.."
+      for t in {10..0}; do
+        sleep 1
+
+        ((t == 10 || t < 6)) &&
+          log warn "${ANSI[magenta]}ynkr:meta:${ANSI[nc]}Next filecheck in: ${ANSI[cyan]}${t}"
+      done
       continue
     }
 
