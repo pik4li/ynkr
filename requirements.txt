@@ -1,5 +1,0 @@
-mutagen
-python-dotenv
-requests 
-openai
-python-dateutil
