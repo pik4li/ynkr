@@ -88,24 +88,26 @@ ynkr:song() {
     "--concurrent-fragments=3"
     "--retries=5"
     "--progress" "--newline"
-    "--color"
+    "--color=always"
     "$url"
   )
 
   $cmd "${args[@]}"
 }
 
+# should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
   while true; do
     local files=()
     mapfile files < <(ls "$DOWNLOADS/")
     ((${#files} > 0)) || continue
-    log info "Found files to process: ${files[*]}"
+    log info "Found files to process:"
+    printf "<${ANSI[green]}%s${ANSI[nc]}>\n" "${files[@]}"
 
-    for ((s = 5; s > 0; s--)); do
+    for ((s = 50; s > 0; s--)); do
       sleep 1
-      log info "$s.." 1>&2
+      log info "$s.."
     done
-    log info "0.." 1>&2
+    log info "0.."
   done
 }
