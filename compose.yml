@@ -7,8 +7,8 @@ services:
     image: ynkr-sh:latest
     volumes:
       - ./downloads:/app/downloads # this is the raw music/download folder -> playlists same as in source
-      - ./music:/app/music # this is the processed music folder
       - ./db/ynkr.db:/app/db/ynkr.db:rw # <- in this database file, we will store and keep track of the processed data, so that we dont need to generate too much ai requests.
+      # - ./music:/app/music # this is the processed music folder
 
       # - ./archives:/archives # <- for keeping track of yt-dlp's already downloaded tracks
       - ./playlists:/app/playlists:ro # <- to let yt-dlp know what to download

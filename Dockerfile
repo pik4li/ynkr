@@ -1,10 +1,11 @@
 FROM alpine:latest
 
-RUN apk add --no-cache curl yt-dlp ffmpeg busybox-suid bash python3 mutagen sqlite
+RUN apk update
+RUN apk add --no-cache yt-dlp ffmpeg busybox-suid bash python3 mutagen sqlite jq
 
 WORKDIR /app
 # COPY requirements.txt .
-RUN mkdir downloads music db lib
+RUN mkdir downloads music db lib .cache
 
 COPY ynkr.sh /app
 COPY lib/* /app/lib/

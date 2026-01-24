@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
+. /app/lib/db.sh
+YT_ARCHIVE=/app/.cache/archive
 
-: ""
-
-. lib/db.sh
+[[ -d "$YT_ARCHIVE" ]] || mkdir -p "$YT_ARCHIVE"
 
 ynkr:parse-playlist-file() {
-  local file="${0%/*}/playlists"
+  local file="/app/playlists"
   local count=0
-  # local file=$1
-
-  # unset YNKR_PLAYLISTS
-  # declare -A YNKR_PLAYLISTS
-
   [[ -n "$file" && -f "$file" ]] || {
     log error "$file - was not found!"
     exit 1
@@ -27,9 +22,6 @@ ynkr:parse-playlist-file() {
     url=${url# }
 
     YNKR_PLAYLISTS[$name]+=":$url:"
-
-    # echo YNKR_PLAYLISTS[$name]+=":$url:"
-    # log info "name: <${ANSI[red]}$name${ANSI[cyan]}> | url: <${ANSI[green]}$url${ANSI[cyan]}>"
   done <"$file"
 }
 
@@ -84,7 +76,7 @@ ynkr:song() {
   [[ -n "$yid" ]] || return 1
   local url="https://youtube.com/watch?v=$yid"
 
-  log info "${ANSI[red]}:YT-DLP:${ANSI[nc]}${ANSI[bold]} Downloading: $name - $yid"
+  log info "${ANSI[red]}:YT-DLP:${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[CYAN]}$name${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
 
   local cmd="yt-dlp"
   local args=()
@@ -97,6 +89,8 @@ ynkr:song() {
     "--audio-quality=0"
     "--concurrent-fragments=3"
     "--retries=5"
+    "--download-archive=$YT_ARCHIVE.yt"
+    "--print='%(colors.green)s▶%(colors.reset)s %(title)s\n%(colors.blue)s👤 %(uploader)s%(colors.reset)s | %(colors.magenta)s⏱ %(duration_string)s%(colors.reset)s | %(colors.cyan)s📺 %(resolution)s%(colors.reset)s | %(colors.yellow)s🎵 %(format_note)s%(colors.reset)s\n%(colors.gray)s%(webpage_url)s%(colors.reset)s\n'"
     "$url"
   )
 

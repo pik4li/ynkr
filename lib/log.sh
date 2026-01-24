@@ -54,9 +54,9 @@ check-deps() {
 
   deps=(
     "yt-dlp"
+    "jq"
     "python"
     "sqlite3"
-    # "mutagen"
   )
 
   for cmd in "${deps[@]}"; do
