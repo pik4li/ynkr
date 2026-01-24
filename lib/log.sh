@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash --norc
+#!/usr/bin/env bash
 command-exists() {
   command -v "$@" >/dev/null 2>&1
 }
@@ -31,19 +31,18 @@ log() {
   local msg=("$@")
 
   local color=""
-
   case "$urgency" in
   info)
-    color="${ANSI[cyan]}INFO:"
+    color="${ANSI[cyan]}INFO${ANSI[nc]}"
     ;;
   error)
-    color="${ANSI[red]}ERROR:"
+    color="${ANSI[red]}ERROR${ANSI[nc]}"
     ;;
   warn | warning)
-    color="${ANSI[yellow]}WARN:"
+    color="${ANSI[yellow]}WARN${ANSI[nc]}"
     ;;
   *)
-    color="${ANSI[bold]}"
+    color="${ANSI[bold]}${urgency^^}${ANSI[nc]}"
     ;;
   esac
 
@@ -56,6 +55,8 @@ check-deps() {
   deps=(
     "yt-dlp"
     "python"
+    "sqlite3"
+    # "mutagen"
   )
 
   for cmd in "${deps[@]}"; do

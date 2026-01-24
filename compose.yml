@@ -1,20 +1,19 @@
 services:
-  ynkr:
+  ynkr-sh:
     environment:
       - PUID=1000        # Replace with your actual UID
-      - PGID=992         # Replace with your actual GID (the docker group GID)
-    build: .
-    # image: ynkr:latest
+      - PGID=966         # Replace with your actual GID (the docker group GID)
+    # build: .
+    image: ynkr-sh:latest
     volumes:
-      - ./downloads:/downloads # this is the raw music/download folder -> playlists same as in source
-      - ./music:/music # this is the processed music folder
+      - ./downloads:/app/downloads # this is the raw music/download folder -> playlists same as in source
+      - ./music:/app/music # this is the processed music folder
+      - ./db/ynkr.db:/app/db/ynkr.db:rw # <- in this database file, we will store and keep track of the processed data, so that we dont need to generate too much ai requests.
 
-      - ./db/music_imports.db:/app/music_imports.db:rw # <- in this database file, we will store and keep track of the processed data, so that we dont need to generate too much ai requests.
-
-      - ./archives:/archives # <- for keeping track of yt-dlp's already downloaded tracks
+      # - ./archives:/archives # <- for keeping track of yt-dlp's already downloaded tracks
       - ./playlists:/app/playlists:ro # <- to let yt-dlp know what to download
 
-      - .env:/app/.env:ro # needed for pythonscripts and other internal scripts
+      # - .env:/app/.env:ro # needed for pythonscripts and other internal scripts
     restart: unless-stopped
     # CAUTION:
     # UNCOMMENT AND ACTIVATE YOUR VPN FOR PRIVACY DOWN BELOW!
