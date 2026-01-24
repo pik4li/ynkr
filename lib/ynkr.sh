@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 . /app/lib/db.sh
-YT_ARCHIVE=/app/.cache/archive
-
-[[ -d "$YT_ARCHIVE" ]] || mkdir -p "$YT_ARCHIVE"
 
 ynkr:parse-playlist-file() {
   local file="/app/playlists"
@@ -12,16 +9,16 @@ ynkr:parse-playlist-file() {
     exit 1
   }
 
-  IFS="="
-  while read -r name url; do
+  # IFS="="
+  while read -r url; do
     ((count++))
-    name=${name% }
-    name=${name# }
-
     url=${url% }
     url=${url# }
+    name=$(ynkr:get-playlist-info "$url" | jq -r '.title')
+    [[ -n "$name" ]] || name="unknown"
 
     YNKR_PLAYLISTS[$name]+=":$url:"
+    log info "${ANSI[magenta]}ynkr:parse-playlist-file:${ANSI[nc]} name=${ANSI[cyan]}$name${ANSI[nc]}; url=${ANSI[green]}${ANSI[nc]}"
   done <"$file"
 }
 
@@ -96,4 +93,19 @@ ynkr:song() {
   )
 
   $cmd "${args[@]}"
+}
+
+ynkr:meta() {
+  while true; do
+    local files=()
+    mapfile files < <(ls "$DOWNLOADS/")
+    ((${#files} > 0)) || continue
+    log info "Found files to process: ${files[*]}"
+
+    for ((s = 5; s > 0; s--)); do
+      sleep 1
+      log info "$s.." 1>&2
+    done
+    log info "0.." 1>&2
+  done
 }

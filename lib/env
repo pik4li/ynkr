@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+declare DB="/app/db/ynkr.db"
+declare DOWNLOADS="/app/downloads"
+declare DEBUG=true
+declare -A YNKR_PLAYLISTS
+
+YT_ARCHIVE=/app/.cache/archive
+[[ -d "$YT_ARCHIVE" ]] || mkdir -p "$YT_ARCHIVE"

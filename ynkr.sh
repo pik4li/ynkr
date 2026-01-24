@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 cd "${0%/*}" >/dev/null 2>&1 || : # cd's into the right dir for sourcing..
-declare DB="/app/db/ynkr.db"
-declare DOWNLOADS="/app/downloads"
-declare DEBUG=true
-declare -A YNKR_PLAYLISTS
+
+. lib/env
 
 . lib/log.sh
 . lib/ynkr.sh
 . lib/db.sh
 
-ynkr:parse-playlist-file             # parses the playlist file and gets the variables right
-ynkr:get-playlist-ids YNKR_PLAYLISTS # replaces the urls with the actual playlist ids
-
 prepare() {
+  ynkr:parse-playlist-file             # parses the playlist file and gets the variables right
+  ynkr:get-playlist-ids YNKR_PLAYLISTS # replaces the urls with the actual playlist ids
+
+  ynkr:meta &
+
   local name
 
   db:init
