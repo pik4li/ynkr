@@ -61,23 +61,28 @@ download() {
 }
 
 main() {
-  prepare
-  if $DEBUG; then
-    db:show
-    db:show playlists
-    db:show songs
-  fi
-  download
-  if $DEBUG; then
-    db:show
-    db:show playlists
-    db:show songs
-  fi
+  while true; do
+    prepare
+    if $DEBUG; then
+      db:show
+      db:show playlists
+      db:show songs
+    fi
+    download
+    if $DEBUG; then
+      db:show
+      db:show playlists
+      db:show songs
+    fi
+
+    log info "YNKR - Done"
+    log warn "Sleeping for the next $SLEEP seconds"
+
+    sleep $SLEEP
+  done
 }
 
-while true; do
-  main
+main
 
-  log info "YNKR - Done"
-  log warn "Sleeping for the next $SLEEP seconds"
-done
+# Trap signals for graceful shutdown
+trap 'log info "Shutting down..."; exit 0' SIGTERM SIGINT
