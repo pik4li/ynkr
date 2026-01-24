@@ -51,7 +51,7 @@ download() {
 
     if ynkr:song "$id"; then
       log info "${ANSI[green]}Downloaded: $name - $id"
-      db:mark-download "$id"
+      db:mark-downloaded "$id"
     else
       log warn "${ANSI[yellow]}Failed: $name - $id"
       db:mark-failed "$id"
