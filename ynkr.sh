@@ -69,7 +69,7 @@ download() {
   for id in "${songs[@]}"; do
     local name
     name="$(db:get-song-name "$id")"
-    log info "${ANSI[green]}[download(${ANSI[magenta]}$accum/${#songs[@]}${ANSI[green]})]${ANSI[nc]} name=${name};id=${id}"
+    log info "${ANSI[green]}[download]${ANSI[nc]}(${ANSI[magenta]}$accum/${#songs[@]}${ANSI[nc]})${ANSI[nc]} name=${name};id=${id}"
 
     # Skip songs with empty names (unavailable videos)
     if [[ -z "$name" ]]; then
