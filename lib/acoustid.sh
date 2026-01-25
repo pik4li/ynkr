@@ -123,67 +123,57 @@ aid:get-pending-files() {
   # Find files in DOWNLOADS that have 'downloaded' tag but not 'organized'
   # and not yet processed by AcoustID
   local files=()
-  local file yt_id tags
+  mapfile files < <(find "$DOWNLOADS" -type f -not -name "*.db" 2>/dev/null)
+  ((${#files[@]} > 0)) || {
+    log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} No files to process.."
+    return
+  }
 
-  for file in "$DOWNLOADS"/*; do
-    [[ -f "$file" ]] || continue
-
-    # Extract yt_id from filename (remove path and extension)
-    yt_id=$(basename "$file")
-    yt_id="${yt_id%.*}"
-
-    # Check tags
-    tags=$(db:get-song-tag "$yt_id" 2>/dev/null)
-    if [[ "$tags" == *"downloaded"* ]] && [[ "$tags" != *"organized"* ]] && [[ "$tags" != *"aid_processed"* ]]; then
-      files+=("$file")
-    fi
-  done
-
-  printf '%s\n' "${files[@]}"
+  printf "%s\n" "${files[@]}"
 }
 
 aid:extract-metadata() {
   local json="$1"
   local min_score="$2"
-  
+
   [[ -n "$json" ]] || return 1
-  
+
   # Get first result with sufficient score
   local score title artist artists
   score=$(jq -r '.results[0].score // empty' <<<"$json")
-  
+
   # Check if score meets minimum threshold
   [[ -n "$score" ]] || return 1
-  
+
   # Use bc for floating point comparison (shell arithmetic doesn't handle decimals)
-  if (( $(echo "$score >= $min_score" | bc -l) )); then
+  if (($(echo "$score >= $min_score" | bc -l))); then
     # Extract metadata
     title=$(jq -r '.results[0].recordings[0].title // empty' <<<"$json")
     artist=$(jq -r '.results[0].recordings[0].artists[0].name // empty' <<<"$json")
-    
-  # Extract all artists as semicolon-separated list for Jellyfin
-  artists=$(jq -r '.results[0].recordings[0].artists | map(.name) | join("; ") // empty' <<<"$json")
-  # Extract AcoustID recording ID for reference
-  local acoustid_id
-  acoustid_id=$(jq -r '.results[0].id // empty' <<<"$json")
-    
-  if [[ -n "$title" && -n "$artist" ]]; then
-    printf '%s\t%s\t%s\t%s\t%s' "$title" "$artist" "$artists" "$score" "$acoustid_id"
-    return 0
+
+    # Extract all artists as semicolon-separated list for Jellyfin
+    artists=$(jq -r '.results[0].recordings[0].artists | map(.name) | join("; ") // empty' <<<"$json")
+    # Extract AcoustID recording ID for reference
+    local acoustid_id
+    acoustid_id=$(jq -r '.results[0].id // empty' <<<"$json")
+
+    if [[ -n "$title" && -n "$artist" ]]; then
+      printf '%s\t%s\t%s\t%s\t%s' "$title" "$artist" "$artists" "$score" "$acoustid_id"
+      return 0
+    fi
   fi
-  fi
-  
+
   return 1
 }
 
 aid:process-file() {
   local file="$1"
   local yt_id title artist artists album score path acoustid_id
-  
+
   # Extract yt_id from filename
   yt_id=$(basename "$file")
   yt_id="${yt_id%.*}"
-  
+
   # Get title from database
   title=$(db:get-song-name "$yt_id")
   if [[ -z "$title" ]]; then
@@ -191,9 +181,9 @@ aid:process-file() {
     db:tag-song "$yt_id" "aid_error"
     return 1
   fi
-  
+
   log info "$LOG_AID Processing ${ANSI[cyan]}$title${ANSI[nc]} (${ANSI[magenta]}$yt_id${ANSI[nc]})"
-  
+
   # Generate fingerprint
   local fp_file="${AID_CACHE}/${yt_id}.fp"
   if [[ ! -e "$fp_file" ]]; then
@@ -203,20 +193,20 @@ aid:process-file() {
       return 1
     }
   fi
-  
+
   # Rate limit before API call
   _aid_rate_limit
-  
+
   # Query AcoustID
   local response metadata
   response=$(aid:ask-aid "$(cat "$fp_file")")
-  
+
   if [[ $? -ne 0 || -z "$response" ]]; then
     log error "$LOG_AID API call failed for $yt_id"
     db:tag-song "$yt_id" "aid_error"
     return 1
   fi
-  
+
   # Extract metadata
   metadata=$(aid:extract-metadata "$response" "$ACOUSTID_MIN_SCORE")
   if [[ $? -ne 0 ]]; then
@@ -224,64 +214,64 @@ aid:process-file() {
     db:tag-song "$yt_id" "aid_fallback"
     return 1
   fi
-  
+
   # Parse extracted metadata
   IFS=$'\t' read -r title artist artists score acoustid_id <<<"$metadata"
-  
+
   log info "$LOG_AID ${ANSI[green]}Match found!${ANSI[nc]} score=${score}, ${ANSI[cyan]}${title}${ANSI[nc]} by ${ANSI[magenta]}${artist}${ANSI[nc]}"
-  
+
   # Default album for AcoustID matches (singles)
   album="singles"
-  
+
   # Sanitize components
   artist=$(_sanitize_filename "$artist")
   album=$(_sanitize_filename "$album")
   local safe_title
   safe_title=$(_sanitize_filename "$title")
-  
+
   # Build destination path
   local dest_dir="${MUSIC_DIR}/${artist}/${album}"
-  
+
   # Move file (using internal helper)
   path=$(_aid_move_file "$file" "$dest_dir" "$safe_title")
   if [[ $? -ne 0 ]]; then
     db:tag-song "$yt_id" "aid_move_error"
     return 1
   fi
-  
+
   # Update database with AcoustID metadata
   db:tag-song "$yt_id" "aid_processed"
-  db:tag-song "$yt_id" "organized"  # Mark as organized for Jellyfin
+  db:tag-song "$yt_id" "organized" # Mark as organized for Jellyfin
   db:update-song-metadata "$yt_id" "$artist" "$album" "$path" "$artists"
   db:update-song-acoustid "$yt_id" "$acoustid_id" "acoustid" "$score"
-  
+
   log info "$LOG_AID ${ANSI[green]}Organized via AcoustID${ANSI[nc]} ${ANSI[cyan]}$title${ANSI[nc]} -> ${ANSI[magenta]}${artist}/${album}${ANSI[nc]}"
   return 0
 }
 
 aid:process() {
   log info "$LOG_AID ${ANSI[green]}Starting AcoustID processing${ANSI[nc]}"
-  
+
   # Ensure MUSIC_DIR exists
   [[ -d "$MUSIC_DIR" ]] || mkdir -p "$MUSIC_DIR"
-  
+
   # Ensure cache directory exists
   [[ -d "$AID_CACHE" ]] || mkdir -p "$AID_CACHE"
-  
+
   # Get pending files
   local files=()
-  while IFS= read -r file; do
-    [[ -n "$file" ]] && files+=("$file")
-  done < <(aid:get-pending-files)
-  
+  # while IFS= read -r file; do
+  #   [[ -n "$file" ]] && files+=("$file")
+  # done < <(aid:get-pending-files)
+
   local count=${#files[@]}
   if ((count == 0)); then
     log info "$LOG_AID No files to process"
     return 0
   fi
-  
+
   log info "$LOG_AID Found ${ANSI[cyan]}${count}${ANSI[nc]} files to process"
-  
+
   # Process files (similar batch size to MusicBrainz)
   local processed=0
   local max_batch=5
@@ -289,6 +279,6 @@ aid:process() {
     ((processed >= max_batch)) && break
     aid:process-file "$file" && ((processed++))
   done
-  
+
   log info "$LOG_AID ${ANSI[green]}Processed${ANSI[nc]} ${ANSI[cyan]}${processed}/${count}${ANSI[nc]} files"
 }
