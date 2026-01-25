@@ -143,6 +143,7 @@ ynkr:meta() {
   if $wait_before; then
     while true; do
       test-net && break
+      sleep 3
     done
   fi
 
