@@ -90,15 +90,13 @@ download() {
     fi
 
     if ynkr:song "$id" "$name"; then
-      if [[ -f "$DOWNLOADS/$id.*" ]]; then
-        log info "${ANSI[green]}[download-suceess]${ANSI[bold]} name=${name@Q};id=${id@Q}"
-        db:mark-downloaded "$id"
-      else
-        log error "${ANSI[red]}[download-fail]${ANSI[bold]} name=${name@Q};id=${id@Q}"
-        db:mark-failed "$id"
+      log info "${ANSI[green]}[download-suceess]${ANSI[bold]} name=${name@Q};id=${id@Q}"
+      db:mark-downloaded "$id"
+    else
+      log error "${ANSI[red]}[download-fail]${ANSI[bold]} name=${name@Q};id=${id@Q}"
+      db:mark-failed "$id"
 
-        YNKR_FAILED_DOWNLOADS[$id]="$name"
-      fi
+      YNKR_FAILED_DOWNLOADS[$id]="$name"
     fi
 
     ((accum++))
