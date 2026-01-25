@@ -45,8 +45,8 @@ _aid_move_file() {
 }
 
 # ---------- configuration ----------
-declare -r AID_KEY="k4hQD6v7FA0"
-declare -r AID_URL="https://api.acoustid.org/v2/lookup?client=${AID_KEY}&meta=recordings"
+declare -r ACOUSTID_KEY="k4hQD6v7FA0"
+declare -r AID_URL="https://api.acoustid.org/v2/lookup?client=${ACOUSTID_KEY}&meta=recordings"
 declare -r AID_CACHE="/app/db/.cache"
 declare -r LOG_AID="${ANSI[red]}[ACOUSTIC-ID]${ANSI[nc]}"
 
@@ -91,6 +91,8 @@ aid:ask-aid() {
   json_content=$(cat "$fp_file")
   dur=$(jq -r '.duration' <<<"$json_content")
   fp=$(jq -r '.fingerprint' <<<"$json_content")
+  dur=${dur%.*}
+
   local final="${AID_URL}&fingerprint=$fp&duration=$dur"
 
   local info

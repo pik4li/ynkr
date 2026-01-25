@@ -19,6 +19,8 @@ declare DOWNLOADS="${YNKR_DOWNLOADS:-./downloads}"
 declare MUSIC_DIR="${YNKR_MUSIC:-./music}"
 declare YNKR_DEBUG=${DEBUG:-false}
 
+declare ACOUSTID_KEY=${ACOUSTID_API_KEY:-}
+
 declare -A YNKR_FAILED_DOWNLOADS
 
 declare -A YNKR_PLAYLIST

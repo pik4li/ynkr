@@ -9,6 +9,12 @@ cd "${0%/*}" >/dev/null 2>&1 || : # cd's into the right dir for sourcing..
 . lib/musicbrainz.sh
 . lib/jellyfin.sh
 
+[[ -n "$ACOUSTID_KEY" ]] || {
+  log error "YOU DO NOT HAVE \$ACOUSTID_API_KEY SET!"
+  log error "SET IT IN THE 'docker-compose.yml' FILE!"
+  exit 1
+}
+
 prepare() {
   ynkr:parse-playlist-file            # parses the playlist file and gets the variables right
   ynkr:get-playlist-ids YNKR_PLAYLIST # replaces the urls with the actual playlist ids
