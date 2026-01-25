@@ -127,8 +127,8 @@ ynkr:song() {
 
 # should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
+  local accum=1
   while true; do
-    local accum=1
     local LONG_SLEEP=120
     local tmp=() t f
     mapfile tmp < <(find "$DOWNLOADS" -type f -not -name "*.db" 2>/dev/null)
