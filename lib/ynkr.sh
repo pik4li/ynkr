@@ -137,8 +137,13 @@ ynkr:song() {
 # should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
   if ! test-net; then
-    log warn "Network is not reacable. Sleeping for ${ANSI[red]}10${ANSI[nc]} seconds"
-    sleep 10
+    wait_before=true
+  fi
+
+  if $wait_before; then
+    while true; do
+      test-net && break
+    done
   fi
 
   local accum=1
