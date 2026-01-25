@@ -75,6 +75,7 @@ download() {
     if [[ -z "$name" ]]; then
       log warn "${ANSI[yellow]}[download]${ANSI[nc]} Skipping ${id}: video unavailable (no title)"
       db:mark-failed "$id"
+      ((accum++))
       continue
     fi
 
@@ -90,6 +91,7 @@ download() {
       fi
     fi
 
+    ((accum++))
     sleep .005
   done
 }
