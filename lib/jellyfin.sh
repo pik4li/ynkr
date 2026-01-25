@@ -297,12 +297,17 @@ _jf_process_file() {
 
   # Look up by file_path (files are named by title after mb:process)
   # Include 'artists' column (semicolon-separated from MusicBrainz)
-  local db_data
+  local db_data db_err
   db_data=$(db "SELECT yt_id, name, artist, album, artists FROM songs WHERE file_path='$file_esc';" 2>&1)
+  db_err=$?
 
-  if [[ -z "$db_data" || "$db_data" == *"Error"* ]]; then
+  if [[ $db_err -ne 0 ]]; then
+    log err "${ANSI[green]}[jf:]${ANSI[nc]} SQL error: ${db_data}"
+    return 1
+  fi
+
+  if [[ -z "$db_data" ]]; then
     log warn "${ANSI[green]}[jf:]${ANSI[nc]} No DB entry for file: ${ANSI[cyan]}${file}${ANSI[nc]}"
-    [[ "$db_data" == *"Error"* ]] && log err "${ANSI[green]}[jf:]${ANSI[nc]} SQL error: ${db_data}"
     return 1
   fi
 
@@ -313,7 +318,7 @@ _jf_process_file() {
   # Fallback to filename if title is empty
   if [[ -z "$title" ]]; then
     title=$(basename "$file")
-    title="${title%.*}"  # Remove extension
+    title="${title%.*}" # Remove extension
   fi
   [[ -z "$artist" ]] && artist="Unknown Artist"
   [[ -z "$album" ]] && album="singles"
