@@ -19,6 +19,7 @@ prepare() {
   for name in "${!YNKR_PLAYLIST[@]}"; do
     local id=${YNKR_PLAYLIST[$name]}
     [[ -n "$name" && -n "$id" ]] || continue
+
     db:add-playlist "$name" "$id" # add playlist to the database
 
     local INFO

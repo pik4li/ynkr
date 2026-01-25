@@ -55,7 +55,7 @@ _jf_clean_title() {
     # Premiere markers
     '\(Premiere\)' '\[Premiere\]'
     '\(World Premiere\)' '\[World Premiere\]'
-    '\| Video Premiere'
+    '[|] Video Premiere'
 
     # Director credits
     '\(Dir\.? by [^)]+\)'
@@ -74,14 +74,14 @@ _jf_clean_title() {
   )
 
   for pattern in "${patterns[@]}"; do
-    # Use sed for regex replacement with | delimiter (avoids issues with / in patterns)
-    title=$(printf '%s' "$title" | sed -E "s|$pattern||gi")
+    # Use sed for regex replacement with # delimiter (avoids issues with / and | in patterns)
+    title=$(printf '%s' "$title" | sed -E "s#$pattern##gi")
   done
 
   # Clean up whitespace
-  title=$(printf '%s' "$title" | sed -E 's|\s+| |g')
-  title=$(printf '%s' "$title" | sed -E 's|^\s*[-–—]+\s*||')
-  title=$(printf '%s' "$title" | sed -E 's|\s*[-–—]+\s*$||')
+  title=$(printf '%s' "$title" | sed -E 's#\s+# #g')
+  title=$(printf '%s' "$title" | sed -E 's#^\s*[-–—]+\s*##')
+  title=$(printf '%s' "$title" | sed -E 's#\s*[-–—]+\s*$##')
   title=$(printf '%s' "$title" | xargs) # trim
 
   printf '%s' "$title"
@@ -102,9 +102,9 @@ _jf_extract_featured() {
 
   if [[ -n "$feat_match" ]]; then
     # Remove the feat./ft./featuring prefix
-    featured=$(printf '%s' "$feat_match" | sed -E 's|^(feat\.|ft\.|featuring)\s+||i')
+    featured=$(printf '%s' "$feat_match" | sed -E 's#^(feat\.|ft\.|featuring)\s+##i')
     # Split on & , and
-    featured=$(printf '%s' "$featured" | sed -E 's|\s*&\s*|; |g; s|\s*,\s*|; |g; s|\s+and\s+|; |gi')
+    featured=$(printf '%s' "$featured" | sed -E 's#\s*&\s*#; #g; s#\s*,\s*#; #g; s#\s+and\s+#; #gi')
   fi
 
   printf '%s' "$featured"
@@ -113,10 +113,10 @@ _jf_extract_featured() {
 _jf_remove_featured_from_title() {
   local title="$1"
 
-  # Remove featured artist notation from title (use | delimiter to avoid issues)
-  title=$(printf '%s' "$title" | sed -E 's|\s+(feat\.|ft\.|featuring)\s+[^(\[]+||gi')
-  title=$(printf '%s' "$title" | sed -E 's|\s*\((feat\.|ft\.|featuring)\s+[^)]+\)||gi')
-  title=$(printf '%s' "$title" | sed -E 's|\s*\[(feat\.|ft\.|featuring)\s+[^\]]+\]||gi')
+  # Remove featured artist notation from title (use # delimiter to avoid issues)
+  title=$(printf '%s' "$title" | sed -E 's#\s+(feat\.|ft\.|featuring)\s+[^(\[]+##gi')
+  title=$(printf '%s' "$title" | sed -E 's#\s*\((feat\.|ft\.|featuring)\s+[^)]+\)##gi')
+  title=$(printf '%s' "$title" | sed -E 's#\s*\[(feat\.|ft\.|featuring)\s+[^]]+\]##gi')
 
   printf '%s' "$title" | xargs
 }
@@ -126,18 +126,18 @@ _jf_remove_featured_from_title() {
 _jf_normalize_artist_separators() {
   local artist="$1"
 
-  # Normalize separators to semicolon for Jellyfin (use | delimiter)
+  # Normalize separators to semicolon for Jellyfin (use # delimiter)
   # & -> ;
   # , -> ;
   # " and " -> ;
   # " x " -> ;
-  artist=$(printf '%s' "$artist" | sed -E 's|\s*&\s*|; |g')
-  artist=$(printf '%s' "$artist" | sed -E 's|\s*,\s*|; |g')
-  artist=$(printf '%s' "$artist" | sed -E 's|\s+and\s+|; |gi')
-  artist=$(printf '%s' "$artist" | sed -E 's|\s+x\s+|; |gi')
+  artist=$(printf '%s' "$artist" | sed -E 's#\s*&\s*#; #g')
+  artist=$(printf '%s' "$artist" | sed -E 's#\s*,\s*#; #g')
+  artist=$(printf '%s' "$artist" | sed -E 's#\s+and\s+#; #gi')
+  artist=$(printf '%s' "$artist" | sed -E 's#\s+x\s+#; #gi')
 
   # Clean up multiple semicolons
-  artist=$(printf '%s' "$artist" | sed -E 's|;\s*;|;|g')
+  artist=$(printf '%s' "$artist" | sed -E 's#;\s*;#;#g')
   artist=$(printf '%s' "$artist" | xargs)
 
   printf '%s' "$artist"
