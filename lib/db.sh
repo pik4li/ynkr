@@ -70,6 +70,10 @@ db:migrate-mb() {
   [[ "$cols" == *"file_path"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN file_path TEXT;"
   # artists = all artists semicolon-separated (for Jellyfin ARTISTS tag)
   [[ "$cols" == *"artists"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artists TEXT;"
+  # AcoustID metadata fields
+  [[ "$cols" == *"acoustid_id"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN acoustid_id TEXT;"
+  [[ "$cols" == *"metadata_source"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN metadata_source TEXT;"
+  [[ "$cols" == *"metadata_score"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN metadata_score REAL;"
 }
 
 # ---------- playlists ----------
@@ -127,10 +131,13 @@ SQL
 
 # State tags are mutually exclusive - setting one removes all others
 # This represents the song's current processing state
-_STATE_TAGS="pending,downloaded,organized,failed,unavailable,mb_error,mb_fallback,mb_file_fallback,move_error,jellyfin_tagged,jellyfin_error,processed"
+_STATE_TAGS="pending,downloaded,organized,failed,unavailable,mb_error,mb_fallback,mb_file_fallback,move_error,jellyfin_tagged,jellyfin_error,processed,aid_processed,aid_fallback,aid_error,aid_move_error"
 
 # Final/completed state tags - songs with these should not be re-processed
 _COMPLETED_TAGS="processed,jellyfin_tagged,organized"
+
+# AcoustID state tags
+_AID_TAGS="aid_processed,aid_fallback,aid_error,aid_move_error"
 
 db:is-song-processed() {
   # Check if song already has a completed state tag
@@ -240,6 +247,19 @@ db:update-song-metadata() {
 
   sqlite3 "$DB" <<SQL
 UPDATE songs SET artist='$artist_esc', album='$album_esc', file_path='$path_esc', artists='$artists_esc'
+WHERE yt_id='$yt_id_esc';
+SQL
+}
+
+db:update-song-acoustid() {
+  local yt_id="$1" acoustid_id="$2" metadata_source="$3" metadata_score="$4"
+  local yt_id_esc acoustid_id_esc metadata_source_esc
+  yt_id_esc=$(_sql_escape "$yt_id")
+  acoustid_id_esc=$(_sql_escape "$acoustid_id")
+  metadata_source_esc=$(_sql_escape "$metadata_source")
+
+  sqlite3 "$DB" <<SQL
+UPDATE songs SET acoustid_id='$acoustid_id_esc', metadata_source='$metadata_source_esc', metadata_score=$metadata_score
 WHERE yt_id='$yt_id_esc';
 SQL
 }

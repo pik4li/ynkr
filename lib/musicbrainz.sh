@@ -183,6 +183,7 @@ _mb_ytdlp_fallback() {
 
 _mb_get_pending_files() {
   # Find files in DOWNLOADS that have 'downloaded' tag but not 'organized'
+  # Skip files already processed by AcoustID (unless they failed and need fallback)
   local files=()
   local file yt_id tags
 
@@ -195,7 +196,7 @@ _mb_get_pending_files() {
 
     # Check tags
     tags=$(db:get-song-tag "$yt_id" 2>/dev/null)
-    if [[ "$tags" == *"downloaded"* ]] && [[ "$tags" != *"organized"* ]]; then
+    if [[ "$tags" == *"downloaded"* ]] && [[ "$tags" != *"organized"* ]] && [[ "$tags" != *"aid_processed"* ]]; then
       files+=("$file")
     fi
   done

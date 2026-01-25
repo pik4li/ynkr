@@ -148,7 +148,10 @@ ynkr:meta() {
 
     log info "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} Found ${ANSI[green]}${#files[@]}${ANSI[nc]} files to process"
 
-    # Process downloaded files with MusicBrainz
+    # Process downloaded files with AcoustID (primary metadata source)
+    aid:process
+
+    # Process downloaded files with MusicBrainz (fallback for AcoustID failures)
     mb:process
 
     # Tag organized files for Jellyfin compatibility
