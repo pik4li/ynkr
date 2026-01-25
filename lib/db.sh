@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # set -euo pipefail
+SQL_SAFETY_FEATURES=(
+  "-cmd"
+  "PRAGMA busy_timeout=5000"
+)
 # ---------- core helper ----------
 db() {
-  sqlite3 -tabs "$DB" "$@"
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" -tabs "$DB" "$@"
 }
 
 # Escape single quotes for SQL: ' -> ''
@@ -18,9 +22,8 @@ db:init() {
 
   log info "${ANSI[yellow]}[db:init:]${ANSI[nc]} Initializing database"
 
-  sqlite3 "$DB" <<'SQL'
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<'SQL'
 PRAGMA foreign_keys = ON;
-PRAGMA busy_timeout = 5000;
 
 CREATE TABLE IF NOT EXISTS playlists (
   id INTEGER PRIMARY KEY,
@@ -65,16 +68,16 @@ SQL
 
 db:migrate-mb() {
   local cols
-  cols=$(sqlite3 "$DB" "PRAGMA table_info(songs);PRAGMA busy_timeout = 5000;" | cut -d'|' -f2)
-  [[ "$cols" == *"artist"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artist TEXT;"
-  [[ "$cols" == *"album"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN album TEXT;"
-  [[ "$cols" == *"file_path"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN file_path TEXT;"
+  cols=$(sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "PRAGMA table_info(songs);" | cut -d'|' -f2)
+  [[ "$cols" == *"artist"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN artist TEXT;"
+  [[ "$cols" == *"album"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN album TEXT;"
+  [[ "$cols" == *"file_path"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN file_path TEXT;"
   # artists = all artists semicolon-separated (for Jellyfin ARTISTS tag)
-  [[ "$cols" == *"artists"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artists TEXT;"
+  [[ "$cols" == *"artists"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN artists TEXT;"
   # AcoustID metadata fields
-  [[ "$cols" == *"acoustid_id"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN acoustid_id TEXT;"
-  [[ "$cols" == *"metadata_source"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN metadata_source TEXT;"
-  [[ "$cols" == *"metadata_score"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN metadata_score REAL;"
+  [[ "$cols" == *"acoustid_id"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN acoustid_id TEXT;"
+  [[ "$cols" == *"metadata_source"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN metadata_source TEXT;"
+  [[ "$cols" == *"metadata_score"* ]] || sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "ALTER TABLE songs ADD COLUMN metadata_score REAL;"
 }
 
 # ---------- playlists ----------
@@ -86,8 +89,7 @@ db:add-playlist() {
   yt_id_esc=$(_sql_escape "$yt_id")
   log info "${ANSI[yellow]}[db:add-playlist:]${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | id=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
-  sqlite3 "$DB" <<SQL
-PRAGMA busy_timeout = 5000;
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 INSERT INTO playlists (name, yt_id)
 VALUES ('$name_esc', '$yt_id_esc')
 ON CONFLICT(yt_id) DO UPDATE SET name=excluded.name;
@@ -104,8 +106,7 @@ db:add-song() {
   log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | ytid=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
   # Insert new song, or update name if it was empty/null
-  sqlite3 "$DB" <<SQL
-PRAGMA busy_timeout = 5000;
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 INSERT INTO songs (name, yt_id)
 VALUES ('$name_esc', '$yt_id_esc')
 ON CONFLICT(yt_id) DO UPDATE SET
@@ -120,8 +121,7 @@ SQL
     playlist_esc=$(_sql_escape "$playlist")
     log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} playlist=${ANSI[green]}$(db:get-song-name "$playlist")"
 
-    sqlite3 "$DB" <<SQL
-PRAGMA busy_timeout = 5000;
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id)
 SELECT p.id, s.id
 FROM playlists p, songs s
@@ -151,8 +151,7 @@ db:is-song-processed() {
 
   local count
   count=$(
-    sqlite3 "$DB" <<SQL
-PRAGMA busy_timeout=5000;
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 SELECT COUNT(*)
 FROM song_tags st
 JOIN songs s ON s.id = st.song_id
@@ -172,8 +171,7 @@ db:tag-song() {
   tag_esc=$(_sql_escape "$tag")
 
   # Remove all existing state tags first, then add the new one
-  sqlite3 "$DB" <<SQL
-PRAGMA busy_timeout = 5000;
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 -- Ensure tag exists
 INSERT OR IGNORE INTO tags (name) VALUES ('$tag_esc');
 
@@ -201,7 +199,6 @@ db:get-song-ids() {
   playlist_esc=$(_sql_escape "$playlist")
 
   db "
-PRAGMA busy_timeout = 5000;
 SELECT s.yt_id
 FROM playlists p
 JOIN playlist_songs ps ON ps.playlist_id=p.id
@@ -214,7 +211,6 @@ db:get-song-tag() {
   local song_id="$1"
 
   db "
-PRAGMA busy_timeout = 5000;
 SELECT t.name
 FROM songs s
 JOIN song_tags st ON st.song_id=s.id
@@ -241,7 +237,7 @@ db:update-song-name() {
   newname_esc=$(_sql_escape "$newname")
   log info "${ANSI[yellow]}[db:update-song-name:]${ANSI[nc]} id=${ANSI[cyan]}$id${ANSI[nc]} | name=${ANSI[magenta]}$newname"
 
-  sqlite3 "$DB" <<SQL
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 UPDATE songs SET name='$newname_esc' WHERE yt_id='$id';
 SQL
 }
@@ -256,7 +252,7 @@ db:update-song-metadata() {
   artists_esc=$(_sql_escape "$artists")
   log info "${ANSI[yellow]}[db:update-song-metadata:]${ANSI[nc]} id=${ANSI[red]}$yt_id${ANSI[nc]} | artist=${ANSI[cyan]}$artist${ANSI[nc]} | artists=${ANSI[magenta]}$artists${ANSI[nc]} | album=${ANSI[blue]}$album"
 
-  sqlite3 "$DB" <<SQL
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 UPDATE songs SET artist='$artist_esc', album='$album_esc', file_path='$path_esc', artists='$artists_esc'
 WHERE yt_id='$yt_id_esc';
 SQL
@@ -269,7 +265,7 @@ db:update-song-acoustid() {
   acoustid_id_esc=$(_sql_escape "$acoustid_id")
   metadata_source_esc=$(_sql_escape "$metadata_source")
 
-  sqlite3 "$DB" <<SQL
+  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
 UPDATE songs SET acoustid_id='$acoustid_id_esc', metadata_source='$metadata_source_esc', metadata_score=$metadata_score
 WHERE yt_id='$yt_id_esc';
 SQL
@@ -277,7 +273,6 @@ SQL
 
 db:get-pending() {
   db "
-  PRAGMA busy_timeout = 5000;
   SELECT s.yt_id
   FROM songs s
   JOIN song_tags st ON st.song_id = s.id
@@ -302,7 +297,7 @@ db:cleanup-unavailable() {
   log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} Marking unavailable songs (empty names)..."
 
   local count
-  count=$(sqlite3 "$DB" "SELECT COUNT(*) FROM songs WHERE name IS NULL OR name = '';")
+  count=$(sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "SELECT COUNT(*) FROM songs WHERE name IS NULL OR name = '';")
 
   if ((count == 0)); then
     log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} No unavailable songs found"
@@ -313,7 +308,7 @@ db:cleanup-unavailable() {
   local yt_id
   while IFS= read -r yt_id; do
     [[ -n "$yt_id" ]] && db:tag-song "$yt_id" "unavailable"
-  done < <(sqlite3 "$DB" "SELECT yt_id FROM songs WHERE name IS NULL OR name = '';")
+  done < <(sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" "SELECT yt_id FROM songs WHERE name IS NULL OR name = '';")
 
   log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} Marked ${ANSI[cyan]}${count}${ANSI[nc]} songs as unavailable"
 }
@@ -324,8 +319,7 @@ db:show() {
   local table="${1:-}"
 
   if [[ -z "$table" ]]; then
-    sqlite3 "$DB" <<'SQL'
-PRAGMA busy_timeout = 5000;
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<'SQL'
 .mode column
 .headers on
 SELECT 'playlists' AS table_name, COUNT(*) AS rows FROM playlists
@@ -343,10 +337,10 @@ SQL
 
   case "$table" in
   playlists)
-    sqlite3 -column -header "$DB" "SELECT id, yt_id, name, created_at FROM playlists;"
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" -column -header "$DB" "SELECT id, yt_id, name, created_at FROM playlists;"
     ;;
   songs)
-    sqlite3 -column -header "$DB" "
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" -column -header "$DB" "
       SELECT
         s.id,
         s.yt_id,
@@ -362,10 +356,10 @@ SQL
       ORDER BY s.id;"
     ;;
   tags)
-    sqlite3 -column -header "$DB" "SELECT id, name FROM tags;"
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" -column -header "$DB" "SELECT id, name FROM tags;"
     ;;
   playlist_songs | ps)
-    sqlite3 -column -header "$DB" "
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" -column -header "$DB" "
         SELECT p.name AS playlist, s.name AS song
         FROM playlist_songs ps
         JOIN playlists p ON p.id = ps.playlist_id
@@ -373,7 +367,7 @@ SQL
         ORDER BY p.name, s.name;"
     ;;
   song_tags | st)
-    sqlite3 -column -header "$DB" "
+    sqlite3 "${SQL_SAFETY_FEATURES[@]}" -column -header "$DB" "
         SELECT s.name AS song, t.name AS tag
         FROM song_tags st
         JOIN songs s ON s.id = st.song_id
