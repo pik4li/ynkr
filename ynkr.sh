@@ -84,7 +84,7 @@ download() {
         log info "${ANSI[green]}[download-suceess]${ANSI[bold]} name=${name@Q};id=${id@Q}"
         db:mark-downloaded "$id"
       else
-        log warn "${ANSI[red]}[download-fail]${ANSI[bold]} name=${name@Q};id=${id@Q}"
+        log error "${ANSI[red]}[download-fail]${ANSI[bold]} name=${name@Q};id=${id@Q}"
         db:mark-failed "$id"
 
         YNKR_FAILED_DOWNLOADS[$id]="$name"
