@@ -130,7 +130,7 @@ ynkr:meta() {
   while true; do
     local tmp=() t f
     mapfile tmp < <(find "$DOWNLOADS" -type f -not -name "*.db" 2>/dev/null)
-    ((${#tmp[@]} > 0)) || {
+    ((${#tmp[@]} > 1)) || {
       log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} No files to process.."
       for t in {10..0}; do
         sleep 1
