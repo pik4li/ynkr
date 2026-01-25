@@ -2,14 +2,15 @@
 # set -euo pipefail
 
 # ---------- sqlite safety ----------
-SQL_SAFETY_FEATURES=(
-  -cmd "PRAGMA busy_timeout=5000"
-)
+# SQL_SAFETY_FEATURES=(
+#   -cmd "PRAGMA busy_timeout=5000"
+# )
 
 # ---------- core helpers ----------
 
 db_exec() {
-  sqlite3 "${SQL_SAFETY_FEATURES[@]}" "$DB" <<SQL
+  sqlite3 "$DB" <<SQL
+.timeout 5000
 $1
 SQL
 }

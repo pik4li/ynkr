@@ -18,6 +18,7 @@ declare DB="${YNKR_DB:-./db/ynkr.db}"
 declare DOWNLOADS="${YNKR_DOWNLOADS:-./downloads}"
 declare MUSIC_DIR="${YNKR_MUSIC:-./music}"
 declare YNKR_DEBUG=${DEBUG:-false}
+declare LAST_SCORE
 
 declare ACOUSTID_KEY=${ACOUSTID_API_KEY:-}
 

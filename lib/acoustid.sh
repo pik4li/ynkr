@@ -155,7 +155,7 @@ aid:extract-metadata() {
   # Check if score meets minimum threshold
   [[ -n "$score" ]] || return 1
 
-  LAST_SCORE=$score
+  export LAST_SCORE=$score
 
   # Use bc for floating point comparison (shell arithmetic doesn't handle decimals)
   if (($(echo "$score >= $min_score" | bc -l))); then
