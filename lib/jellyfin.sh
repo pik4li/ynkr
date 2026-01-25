@@ -82,7 +82,7 @@ _jf_clean_title() {
   title=$(printf '%s' "$title" | sed -E 's|\s+| |g')
   title=$(printf '%s' "$title" | sed -E 's|^\s*[-–—]+\s*||')
   title=$(printf '%s' "$title" | sed -E 's|\s*[-–—]+\s*$||')
-  title=$(printf '%s' "$title" | xargs)  # trim
+  title=$(printf '%s' "$title" | xargs) # trim
 
   printf '%s' "$title"
 }
@@ -162,9 +162,9 @@ _jf_format_artists_for_jellyfin() {
 
   # Remove duplicates while preserving order
   local seen=() unique=() artist
-  IFS='; ' read -ra artists <<< "$all_artists"
+  IFS='; ' read -ra artists <<<"$all_artists"
   for artist in "${artists[@]}"; do
-    artist=$(printf '%s' "$artist" | xargs)  # trim
+    artist=$(printf '%s' "$artist" | xargs) # trim
     [[ -z "$artist" ]] && continue
 
     local artist_lower="${artist,,}"
@@ -225,11 +225,11 @@ _jf_write_tags() {
   local title="$2"
   local artist="$3"
   local album="$4"
-  local artists="$5"       # Semicolon-separated all artists
+  local artists="$5" # Semicolon-separated all artists
   local album_artist="$6"
 
   local ext="${file##*.}"
-  ext="${ext,,}"  # lowercase
+  ext="${ext,,}" # lowercase
 
   # Use ffmpeg to write metadata (works for most formats)
   # For OGG/Opus/FLAC, we need to handle ARTISTS specially
@@ -237,44 +237,44 @@ _jf_write_tags() {
   local tmp_file="${file}.tmp.${ext}"
 
   case "$ext" in
-    ogg|opus|flac)
-      # Vorbis comment format - supports ARTISTS as multiple values
-      # Build metadata arguments
-      local meta_args=(
-        -metadata "TITLE=${title}"
-        -metadata "ARTIST=${artist}"
-        -metadata "ALBUM=${album}"
-        -metadata "ALBUMARTIST=${album_artist}"
-      )
+  ogg | opus | flac)
+    # Vorbis comment format - supports ARTISTS as multiple values
+    # Build metadata arguments
+    local meta_args=(
+      -metadata "TITLE=${title}"
+      -metadata "ARTIST=${artist}"
+      -metadata "ALBUM=${album}"
+      -metadata "ALBUMARTIST=${album_artist}"
+    )
 
-      # Add ARTISTS as separate metadata entries for each artist
-      if [[ -n "$artists" ]]; then
-        IFS='; ' read -ra artist_list <<< "$artists"
-        for a in "${artist_list[@]}"; do
-          a=$(printf '%s' "$a" | xargs)
-          [[ -n "$a" ]] && meta_args+=(-metadata "ARTISTS=${a}")
-        done
-      fi
+    # Add ARTISTS as separate metadata entries for each artist
+    if [[ -n "$artists" ]]; then
+      IFS='; ' read -ra artist_list <<<"$artists"
+      for a in "${artist_list[@]}"; do
+        a=$(printf '%s' "$a" | xargs)
+        [[ -n "$a" ]] && meta_args+=(-metadata "ARTISTS=${a}")
+      done
+    fi
 
-      ffmpeg -y -i "$file" -c copy "${meta_args[@]}" "$tmp_file" 2>/dev/null
-      ;;
-    mp3|m4a|aac)
-      # ID3/MP4 format
-      ffmpeg -y -i "$file" -c copy \
-        -metadata "title=${title}" \
-        -metadata "artist=${artist}" \
-        -metadata "album=${album}" \
-        -metadata "album_artist=${album_artist}" \
-        "$tmp_file" 2>/dev/null
-      ;;
-    *)
-      # Generic attempt
-      ffmpeg -y -i "$file" -c copy \
-        -metadata "title=${title}" \
-        -metadata "artist=${artist}" \
-        -metadata "album=${album}" \
-        "$tmp_file" 2>/dev/null
-      ;;
+    ffmpeg -y -i "$file" -c copy "${meta_args[@]}" "$tmp_file" 2>/dev/null
+    ;;
+  mp3 | m4a | aac)
+    # ID3/MP4 format
+    ffmpeg -y -i "$file" -c copy \
+      -metadata "title=${title}" \
+      -metadata "artist=${artist}" \
+      -metadata "album=${album}" \
+      -metadata "album_artist=${album_artist}" \
+      "$tmp_file" 2>/dev/null
+    ;;
+  *)
+    # Generic attempt
+    ffmpeg -y -i "$file" -c copy \
+      -metadata "title=${title}" \
+      -metadata "artist=${artist}" \
+      -metadata "album=${album}" \
+      "$tmp_file" 2>/dev/null
+    ;;
   esac
 
   # Replace original with tagged version
@@ -307,13 +307,18 @@ _jf_process_file() {
   fi
 
   # Parse tab-separated values (now includes artists from DB)
-  IFS=$'\t' read -r yt_id title artist album artists <<< "$db_data"
+  # Order: yt_id, name, artist, album, artists
+  IFS=$'\t' read -r yt_id title artist album artists <<<"$db_data"
 
-  [[ -z "$title" ]] && title=$(basename "$file" | sed 's|\..*$||')
+  # Fallback to filename if title is empty
+  if [[ -z "$title" ]]; then
+    title=$(basename "$file")
+    title="${title%.*}"  # Remove extension
+  fi
   [[ -z "$artist" ]] && artist="Unknown Artist"
   [[ -z "$album" ]] && album="singles"
 
-  log info "${ANSI[green]}[jf:]${ANSI[nc]} Processing ${ANSI[cyan]}${title}${ANSI[nc]} by ${ANSI[magenta]}${artist}${ANSI[nc]}"
+  log info "${ANSI[green]}[jf:]${ANSI[nc]} Processing: ${ANSI[cyan]}${title}${ANSI[nc]} by ${ANSI[magenta]}${artist}${ANSI[nc]}"
 
   # Clean title
   local clean_title
