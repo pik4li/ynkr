@@ -298,7 +298,7 @@ _jf_process_file() {
   # Look up by file_path (files are named by title after mb:process)
   # Include 'artists' column (semicolon-separated from MusicBrainz)
   local db_data db_err
-  db_data=$(db "SELECT yt_id, name, artist, album, artists FROM songs WHERE file_path='$file_esc';" 2>&1)
+  db_data=$(db_exec "SELECT yt_id, name, artist, album, artists FROM songs WHERE file_path='$file_esc';" 2>&1)
   db_err=$?
 
   if [[ $db_err -ne 0 ]]; then
@@ -388,7 +388,7 @@ _jf_get_untagged_files() {
     [[ -z "$file_path" ]] && continue
     [[ -f "$file_path" ]] || continue
     files+=("$file_path")
-  done < <(db "
+  done < <(db_exec "
     SELECT s.file_path FROM songs s
     JOIN song_tags st ON st.song_id = s.id
     JOIN tags t ON t.id = st.tag_id
