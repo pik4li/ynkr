@@ -354,7 +354,8 @@ _jf_process_file() {
   # Write tags to file
   if _jf_write_tags "$file" "$clean_title" "$primary_artist" "$album" "$artists_field" "$album_artist"; then
     log info "${ANSI[green]}[jf:]${ANSI[nc]} ${ANSI[green]}Tagged${ANSI[nc]} ${ANSI[cyan]}${clean_title}${ANSI[nc]}"
-    db:tag-song "$yt_id" "jellyfin_tagged"
+    # Mark as fully processed - this is the final state
+    db:tag-song "$yt_id" "processed"
 
     # Update database with cleaned title
     db:update-song-name "$yt_id" "$clean_title"
@@ -367,21 +368,24 @@ _jf_process_file() {
 }
 
 _jf_get_untagged_files() {
-  # Find files in MUSIC_DIR that are 'organized' but not 'jellyfin_tagged'
+  # Find files that are 'organized' but not yet 'processed'
+  # Since tags are mutually exclusive, we just find songs with 'organized' tag
   local files=()
-  local yt_id tags file_path
+  local file_path
 
-  # Get all organized songs from database
-  while IFS=$'\t' read -r yt_id file_path; do
-    [[ -z "$yt_id" || -z "$file_path" ]] && continue
+  # Get songs with 'organized' tag that have a file_path
+  while IFS= read -r file_path; do
+    [[ -z "$file_path" ]] && continue
     [[ -f "$file_path" ]] || continue
-
-    # Check if already tagged for Jellyfin
-    tags=$(db:get-song-tag "$yt_id" 2>/dev/null)
-    if [[ "$tags" == *"organized"* && "$tags" != *"jellyfin_tagged"* ]]; then
-      files+=("$file_path")
-    fi
-  done < <(db "SELECT yt_id, file_path FROM songs WHERE file_path IS NOT NULL AND file_path != '';")
+    files+=("$file_path")
+  done < <(db "
+    SELECT s.file_path FROM songs s
+    JOIN song_tags st ON st.song_id = s.id
+    JOIN tags t ON t.id = st.tag_id
+    WHERE t.name = 'organized'
+      AND s.file_path IS NOT NULL
+      AND s.file_path != '';
+  ")
 
   printf '%s\n' "${files[@]}"
 }

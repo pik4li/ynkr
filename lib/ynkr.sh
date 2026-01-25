@@ -30,42 +30,26 @@ ynkr:parse-playlist-file() {
 
 # parses the id from the playlist url
 ynkr:get-playlist-ids() {
-  local -n PLAYLIST=$1 # Assosiative array (YNKR_PLAYLIST)
+  local -n PLAYLIST=$1 # Associative array (YNKR_PLAYLIST)
   local idx
-
-  local songs=($(db:get-pending))
 
   for idx in "${!PLAYLIST[@]}"; do
     local id
     local target="${PLAYLIST[$idx]}"
 
-    if [[ "$target" =~ list=([^& \n]*) ]]; then
+    # Extract playlist ID from URL
+    if [[ "$target" =~ list=([^&[:space:]]*) ]]; then
       id=${BASH_REMATCH[1]}
     fi
 
-    if $YNKR_DEBUG; then
-      log info "${ASCI[blue]}Songs-To-Process: ${songs[*]}"
-    fi
-
-    case "$id" in
-    *"${songs[*]}"*)
-      log info "${ASCI[yellow]}[ynkr:get-playlist-ids] Skipping ${ANSI[magenta]}$id"
-      continue
-      ;;
-    esac
-
-    # deduplication..
-    # for s in "${songs[@]}"; do
-    #   [[ -n "$s" ]] || continue
-    #
-    #   if [[ "$s" == "$id" ]]; then
-    #     continue 2
-    #   fi
-    # done
     [[ -n "$id" ]] || continue
 
-    # overwrite the url with the id in the array
+    # Overwrite the url with the id in the array
     PLAYLIST[$idx]=$id
+
+    if $YNKR_DEBUG; then
+      log info "${ANSI[blue]}[ynkr:get-playlist-ids]${ANSI[nc]} Parsed playlist: ${ANSI[cyan]}$idx${ANSI[nc]} -> ${ANSI[magenta]}$id${ANSI[nc]}"
+    fi
   done
 }
 

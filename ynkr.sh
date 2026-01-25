@@ -34,10 +34,20 @@ prepare() {
     done <<<"$(ynkr:get-song-titles "$INFO")"
 
     local len=${#songs[@]}
+    local playlist_yt_id
+    playlist_yt_id=$(printf "%s\n" "$INFO" | jq -r '.id')
+
     for ((j = 0; j < len; j++)); do
-      local name=${songs[j]}
-      db:add-song "${name}" "${ids[j]}" "$(printf "%s\n" "$INFO" | jq -r '.id')"
-      db:tag-song "${ids[j]}" "pending"
+      local song_name=${songs[j]}
+      local song_id=${ids[j]}
+
+      # Add song to database (updates name if it was empty)
+      db:add-song "${song_name}" "${song_id}" "$playlist_yt_id"
+
+      # Only tag as pending if not already processed
+      if ! db:is-song-processed "$song_id"; then
+        db:tag-song "${song_id}" "pending"
+      fi
 
       sleep .005
     done

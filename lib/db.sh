@@ -127,7 +127,28 @@ SQL
 
 # State tags are mutually exclusive - setting one removes all others
 # This represents the song's current processing state
-_STATE_TAGS="pending,downloaded,organized,failed,unavailable,mb_error,mb_fallback,mb_file_fallback,move_error,jellyfin_tagged,jellyfin_error"
+_STATE_TAGS="pending,downloaded,organized,failed,unavailable,mb_error,mb_fallback,mb_file_fallback,move_error,jellyfin_tagged,jellyfin_error,processed"
+
+# Final/completed state tags - songs with these should not be re-processed
+_COMPLETED_TAGS="processed,jellyfin_tagged,organized"
+
+db:is-song-processed() {
+  # Check if song already has a completed state tag
+  local yt_id="$1"
+  local yt_id_esc
+  yt_id_esc=$(_sql_escape "$yt_id")
+
+  local count
+  count=$(sqlite3 "$DB" "
+    SELECT COUNT(*) FROM song_tags st
+    JOIN songs s ON s.id = st.song_id
+    JOIN tags t ON t.id = st.tag_id
+    WHERE s.yt_id = '$yt_id_esc'
+      AND t.name IN ('processed', 'jellyfin_tagged', 'organized');
+  ")
+
+  ((count > 0))
+}
 
 db:tag-song() {
   local song_id="$1" tag="$2"
