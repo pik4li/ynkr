@@ -137,7 +137,7 @@ ynkr:meta() {
       ((accum++))
 
       if ((accum > 3)); then
-        log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} Sleeping for $LONG_SLEEP seconds.."
+        log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} Sleeping for ${ANSI[magenta]}$LONG_SLEEP${ANSI[nc]} seconds.."
         sleep $LONG_SLEEP
         accum=1
       fi
