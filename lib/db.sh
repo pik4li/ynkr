@@ -125,15 +125,29 @@ SQL
 
 # ---------- tags ----------
 
+# State tags are mutually exclusive - setting one removes all others
+# This represents the song's current processing state
+_STATE_TAGS="pending,downloaded,organized,failed,unavailable,mb_error,mb_fallback,mb_file_fallback,move_error,jellyfin_tagged,jellyfin_error"
+
 db:tag-song() {
   local song_id="$1" tag="$2"
   local song_id_esc tag_esc
   song_id_esc=$(_sql_escape "$song_id")
   tag_esc=$(_sql_escape "$tag")
 
+  # Remove all existing state tags first, then add the new one
   sqlite3 "$DB" <<SQL
+-- Ensure tag exists
 INSERT OR IGNORE INTO tags (name) VALUES ('$tag_esc');
 
+-- Remove all state tags from this song
+DELETE FROM song_tags
+WHERE song_id = (SELECT id FROM songs WHERE yt_id = '$song_id_esc')
+  AND tag_id IN (
+    SELECT id FROM tags WHERE name IN ($(echo "$_STATE_TAGS" | sed "s/,/','/g" | sed "s/^/'/" | sed "s/$/'/"))
+  );
+
+-- Add the new tag
 INSERT OR IGNORE INTO song_tags (song_id, tag_id)
 SELECT s.id, t.id
 FROM songs s, tags t
@@ -221,40 +235,16 @@ db:get-pending() {
 
 db:mark-downloaded() {
   local yt_id="$1"
-  local yt_id_esc
-  yt_id_esc=$(_sql_escape "$yt_id")
-
-  sqlite3 "$DB" <<SQL
-  DELETE FROM song_tags
-  WHERE song_id = (SELECT id FROM songs WHERE yt_id = '$yt_id_esc')
-    AND tag_id = (SELECT id FROM tags WHERE name = 'pending');
-
-  INSERT OR IGNORE INTO tags (name) VALUES ('downloaded');
-  INSERT OR IGNORE INTO song_tags (song_id, tag_id)
-  SELECT s.id, t.id FROM songs s, tags t
-  WHERE s.yt_id = '$yt_id_esc' AND t.name = 'downloaded';
-SQL
+  db:tag-song "$yt_id" "downloaded"
 }
 
 db:mark-failed() {
   local yt_id="$1"
-  local yt_id_esc
-  yt_id_esc=$(_sql_escape "$yt_id")
-
-  sqlite3 "$DB" <<SQL
-  DELETE FROM song_tags
-  WHERE song_id = (SELECT id FROM songs WHERE yt_id = '$yt_id_esc')
-    AND tag_id = (SELECT id FROM tags WHERE name = 'pending');
-
-  INSERT OR IGNORE INTO tags (name) VALUES ('failed');
-  INSERT OR IGNORE INTO song_tags (song_id, tag_id)
-  SELECT s.id, t.id FROM songs s, tags t
-  WHERE s.yt_id = '$yt_id_esc' AND t.name = 'failed';
-SQL
+  db:tag-song "$yt_id" "failed"
 }
 
 db:cleanup-unavailable() {
-  # Mark songs with empty names as 'unavailable' and remove 'pending' tag
+  # Mark songs with empty names as 'unavailable' and remove all other state tags
   # These are videos that were private/deleted when added
   log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} Marking unavailable songs (empty names)..."
 
@@ -266,20 +256,11 @@ db:cleanup-unavailable() {
     return 0
   fi
 
-  sqlite3 "$DB" <<'SQL'
-  -- Create unavailable tag if not exists
-  INSERT OR IGNORE INTO tags (name) VALUES ('unavailable');
-
-  -- Remove pending tag from songs with empty names
-  DELETE FROM song_tags
-  WHERE song_id IN (SELECT id FROM songs WHERE name IS NULL OR name = '')
-    AND tag_id = (SELECT id FROM tags WHERE name = 'pending');
-
-  -- Add unavailable tag to songs with empty names
-  INSERT OR IGNORE INTO song_tags (song_id, tag_id)
-  SELECT s.id, t.id FROM songs s, tags t
-  WHERE (s.name IS NULL OR s.name = '') AND t.name = 'unavailable';
-SQL
+  # Tag each unavailable song (db:tag-song handles removing other state tags)
+  local yt_id
+  while IFS= read -r yt_id; do
+    [[ -n "$yt_id" ]] && db:tag-song "$yt_id" "unavailable"
+  done < <(sqlite3 "$DB" "SELECT yt_id FROM songs WHERE name IS NULL OR name = '';")
 
   log info "${ANSI[yellow]}[db:cleanup:]${ANSI[nc]} Marked ${ANSI[cyan]}${count}${ANSI[nc]} songs as unavailable"
 }
