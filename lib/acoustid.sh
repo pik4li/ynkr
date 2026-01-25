@@ -50,7 +50,7 @@ declare -r AID_CACHE="/app/db/.cache"
 declare -r LOG_AID="${ANSI[red]}[ACOUSTIC-ID]${ANSI[nc]}"
 
 # AcoustID minimum confidence score (0.0-1.0)
-# declare -r ACOUSTID_MIN_SCORE="${ACOUSTID_MIN_SCORE:-0.8}"
+declare -r ACOUSTID_MIN_SCORE="${ACOUSTID_MIN_SCORE:-0.6}"
 
 # AcoustID rate limiting (3 requests per second recommended)
 declare -r AID_RATE_LIMIT=1    # Conservative: 1 request per second
@@ -143,40 +143,65 @@ aid:get-pending-files() {
 
 aid:extract-metadata() {
   local json="$1"
-
-  min_score=${ACOUSTID_MIN_SCORE:-0.85}
-
-  [[ -n "$json" ]] || return 1
-
-  # Get first result with sufficient score
-  local score title artist artists
-  score=$(jq -r '.results[0].score // empty' <<<"$json")
-
-  # Check if score meets minimum threshold
-  [[ -n "$score" ]] || return 1
-
-  export LAST_SCORE=$score
-
-  # Use bc for floating point comparison (shell arithmetic doesn't handle decimals)
-  if (($(echo "$score >= $min_score" | bc -l))); then
-    # Extract metadata
-    title=$(jq -r '.results[0].recordings[0].title // empty' <<<"$json")
-    artist=$(jq -r '.results[0].recordings[0].artists[0].name // empty' <<<"$json")
-
-    # Extract all artists as semicolon-separated list for Jellyfin
-    artists=$(jq -r '.results[0].recordings[0].artists | map(.name) | join("; ") // empty' <<<"$json")
-    # Extract AcoustID recording ID for reference
-    local acoustid_id
-    acoustid_id=$(jq -r '.results[0].id // empty' <<<"$json")
-
-    if [[ -n "$title" && -n "$artist" ]]; then
-      printf '%s\t%s\t%s\t%s\t%s' "$title" "$artist" "$artists" "$score" "$acoustid_id"
-      return 0
+  local min_score="$2"
+  
+  [[ -n "$json" ]] || {
+    log error "$LOG_AID Empty JSON response"
+    return 1
+  }
+  
+  # Check if we have any results
+  local results_count
+  results_count=$(jq -r '.results | length // 0' <<<"$json")
+  
+  if ((results_count == 0)); then
+    log info "$LOG_AID No results found in API response"
+    return 1
+  fi
+  
+  # Get first result and extract all info in one place
+  local first_result
+  first_result=$(jq -r '.results[0]' <<<"$json")
+  
+  # Extract score and convert to integer comparison (avoid bc complexity)
+  local score
+  score=$(jq -r '.score // "0"' <<<"$first_result")
+  
+  # Simple integer comparison: multiply by 100
+  local score_int min_score_int
+  score_int=$(printf '%.0f' "$(echo "$score * 100" | bc -l 2>/dev/null || echo "0")")
+  min_score_int=$(printf '%.0f' "$(echo "$min_score * 100" | bc -l 2>/dev/null || echo "80")")
+  
+  log info "$LOG_AID Score: $score (${score_int}/100), Required: >= $min_score (${min_score_int}/100)"
+  
+  if ((score_int >= min_score_int)); then
+    # Extract metadata from first recording
+    local recording
+    recording=$(jq -r '.recordings[0] // empty' <<<"$first_result")
+    
+    if [[ -n "$recording" && "$recording" != "null" ]]; then
+      local title artist artists acoustid_id
+      title=$(jq -r '.title // empty' <<<"$recording")
+      artist=$(jq -r '.artists[0].name // empty' <<<"$recording")
+      # Extract all artists as semicolon-separated list for Jellyfin
+      artists=$(jq -r '.artists | map(.name) | join("; ") // empty' <<<"$recording")
+      # Extract AcoustID recording ID for reference
+      acoustid_id=$(jq -r '.id // empty' <<<"$first_result")
+      
+      if [[ -n "$title" && -n "$artist" ]]; then
+        log info "$LOG_AID ${ANSI[green]}✓ High-confidence match!${ANSI[nc]} Score: $score"
+        printf '%s\t%s\t%s\t%s\t%s' "$title" "$artist" "$artists" "$score" "$acoustid_id"
+        return 0
+      else
+        log warn "$LOG_AID ✗ Match found but missing title/artist data"
+      fi
+    else
+      log warn "$LOG_AID ✗ Match found but no recording data available"
     fi
   else
-    log warning "$LOG_AID Score: ${ASCI[magenta]}$score"
+    log info "$LOG_AID ✗ Low confidence score: $score < $min_score"
   fi
-
+  
   return 1
 }
 
@@ -221,10 +246,15 @@ aid:process-file() {
     return 1
   fi
 
+  # Debug: Log first 200 chars of response to see what we're getting
+  local debug_response
+  debug_response=$(printf '%s' "$response" | head -c 200)
+  log info "$LOG_AID API response preview: ${debug_response}..."
+
   # Extract metadata
   metadata=$(aid:extract-metadata "$response" "$ACOUSTID_MIN_SCORE")
   if [[ $? -ne 0 ]]; then
-    log info "$LOG_AID ${ANSI[yellow]}No high-confidence match for ${title} (score[$LAST_SCORE] < ${ACOUSTID_MIN_SCORE})${ANSI[nc]}"
+    log info "$LOG_AID ${ANSI[yellow]}No high-confidence match for ${title} (score < ${ACOUSTID_MIN_SCORE})${ANSI[nc]}"
     db:tag-song "$yt_id" "aid_fallback"
     return 1
   fi
