@@ -194,7 +194,11 @@ _mb_get_pending_files() {
     yt_id=$(basename "$file")
     yt_id="${yt_id%.*}"
 
-    # Check tags
+    # Check tags - process files that:
+    # 1. Have 'downloaded' tag
+    # 2. Are NOT 'organized' 
+    # 3. Are NOT 'aid_processed' (already handled by AcoustID)
+    # 4. But INCLUDE 'aid_fallback' (these need MusicBrainz processing)
     tags=$(db:get-song-tag "$yt_id" 2>/dev/null)
     if [[ "$tags" == *"downloaded"* ]] && [[ "$tags" != *"organized"* ]] && [[ "$tags" != *"aid_processed"* ]]; then
       files+=("$file")

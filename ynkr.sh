@@ -115,13 +115,7 @@ main() {
 
     download
 
-    if $YNKR_DEBUG; then
-      db:show >&2
-      db:show playlists >&2
-      db:show songs >&2
-      sleep 3
-      tree "$MUSIC_DIR" >&2
-    fi
+    $YNKR_DEBUG && tree "$MUSIC_DIR" >&2
 
     for key in "${!YNKR_FAILED_DOWNLOADS[@]}"; do
       local val=${YNKR_FAILED_DOWNLOADS[$key]}
