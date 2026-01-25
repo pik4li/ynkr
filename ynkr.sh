@@ -51,6 +51,7 @@ prepare() {
       if ! db:is-song-processed "$song_id"; then
         db:tag-song "${song_id}" "pending"
       fi
+
       sleep .005
     done
   done
@@ -73,14 +74,15 @@ download() {
       continue
     fi
 
-    log info "${ANSI[red]}[download]${ANSI[nc]} - ${name}:${id}"
+    log info "${ANSI[red]}[download]${ANSI[nc]} name=${name};id=${id}"
 
     if ynkr:song "$id" "$name"; then
-      log info "${ANSI[green]}[Downloaded] ${name@Q} - ${id@Q}"
+      log info "${ANSI[green]}[Downloaded] name=${name@Q};id=${id@Q}"
       db:mark-downloaded "$id"
     else
-      log warn "${ANSI[yellow]}[Failed] ${name@Q} - ${id@Q}"
+      log warn "${ANSI[yellow]}[Failed] name=${name@Q};id=${id@Q}"
       db:mark-failed "$id"
+
       YNKR_FAILED_DOWNLOADS[$id]="$name"
     fi
 

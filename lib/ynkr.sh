@@ -110,7 +110,9 @@ ynkr:song() {
   if ! $cmd "${args[@]}"; then
     log info "${ANSI[magenta]}[ynkr:song:]${ANSI[nc]}${ANSI[cyan]} Trying again with '--extractor-args=youtube:player-client=default,mweb'"
     args+=("--extractor-args=youtube:player-client=default,mweb")
-    $cmd "${args[@]}"
+    if ! $cmd "${args[@]}"; then
+      db:mark-failed "$yid"
+    fi
   fi
 }
 
