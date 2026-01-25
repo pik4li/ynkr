@@ -63,13 +63,13 @@ download() {
   local songs=()
   songs=($(db:get-pending))
 
-  log info "${ANSI[green]}[download]${ANSI[nc]} Staged ${ANSI[cyan]}${#songs[@]}${ANSI[nc]} songs to download"
+  log info "${ANSI[green]}[download]${ANSI[nc]} Staged ${ANSI[magenta]}${#songs[@]}${ANSI[nc]} songs to download"
 
   local accum=1
   for id in "${songs[@]}"; do
     local name
     name="$(db:get-song-name "$id")"
-    log info "${ANSI[green]}[download(${ANSI[cyan]}$accum/${#songs[@]}${ANSI[green]})]${ANSI[nc]} name=${name};id=${id}"
+    log info "${ANSI[green]}[download(${ANSI[magenta]}$accum/${#songs[@]}${ANSI[green]})]${ANSI[nc]} name=${name};id=${id}"
 
     # Skip songs with empty names (unavailable videos)
     if [[ -z "$name" ]]; then
