@@ -80,16 +80,17 @@ aid:make-fingerprint() {
 }
 
 aid:ask-aid() {
-  local file=$1
+  local fp_file="$1"
 
-  [[ -e "$file" ]] || {
-    log error "$LOG_AID Failed to ask aid about file that doesn't exist! :${ANSI[magenta]}$file"
+  [[ -e "$fp_file" ]] || {
+    log error "$LOG_AID Failed to ask aid about file that doesn't exist! :${ANSI[magenta]}$fp_file"
     return 1
   }
 
-  local dur fp
-  dur=$(jq -r '.duration' <<<"$file")
-  fp=$(jq -r '.fingerprint' <<<"$file")
+  local dur fp json_content
+  json_content=$(cat "$fp_file")
+  dur=$(jq -r '.duration' <<<"$json_content")
+  fp=$(jq -r '.fingerprint' <<<"$json_content")
   local final="${AID_URL}&fingerprint=$fp&duration=$dur"
 
   local info
@@ -199,7 +200,7 @@ aid:process-file() {
 
   # Query AcoustID
   local response metadata
-  response=$(aid:ask-aid "$(cat "$fp_file")")
+  response=$(aid:ask-aid "$fp_file")
 
   if [[ $? -ne 0 || -z "$response" ]]; then
     log error "$LOG_AID API call failed for $yt_id"
