@@ -42,10 +42,14 @@ prepare() {
       local song_name=${songs[j]}
       local song_id=${ids[j]}
 
-      if ! db:get-song-name "$song_id"; then
-        # Add song to database (updates name if it was empty)
+      local song_tag=$(db:get-song-tag "$song_id")
+
+      case "$song_tag" in
+      *processed* | *downloaded*) ;;
+      *)
         db:add-song "${song_name}" "${song_id}" "$playlist_yt_id"
-      fi
+        ;;
+      esac
 
       # Only tag as pending if not already processed
       if ! db:is-song-processed "$song_id"; then
