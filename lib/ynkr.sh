@@ -129,13 +129,13 @@ ynkr:song() {
 ynkr:meta() {
   while true; do
     local tmp=() t f
-    mapfile tmp < <(ls "$DOWNLOADS/" 2>/dev/null)
+    mapfile tmp < <(find "$DOWNLOADS" -type f -not -name "*.db" 2>/dev/null)
     ((${#tmp[@]} > 0)) || {
       log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} No files to process.."
       for t in {10..0}; do
         sleep 1
 
-        ((t == 10 || t < 6)) &&
+        ((t == 10 || t == 3 || t == 1)) &&
           log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]}Next filecheck in: ${ANSI[cyan]}${t}"
       done
       continue

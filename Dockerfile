@@ -1,7 +1,9 @@
 FROM alpine:latest
 
 RUN apk update
-RUN apk add --no-cache yt-dlp ffmpeg busybox-suid bash python3 mutagen sqlite jq curl
+RUN apk add --no-cache yt-dlp ffmpeg busybox-suid python3 mutagen
+
+RUN apk add --no-cache bash sqlite jq curl chromaprint
 
 WORKDIR /app
 # COPY requirements.txt .
