@@ -63,25 +63,27 @@ download() {
   local songs=()
   songs=($(db:get-pending))
 
+  log info "${ANSI[green]}[download]${ANSI[nc]} Staged ${ANSI[cyan]}${#songs[@]}${ANSI[nc]} songs to download"
+
+  local accum=1
   for id in "${songs[@]}"; do
     local name
     name="$(db:get-song-name "$id")"
+    log info "${ANSI[green]}[download(${ANSI[cyan]}$accum/${#songs[@]}${ANSI[green]})]${ANSI[nc]} name=${name};id=${id}"
 
     # Skip songs with empty names (unavailable videos)
     if [[ -z "$name" ]]; then
-      log warn "${ANSI[yellow]}[download]${ANSI[nc]} Skipping ${id} - video unavailable (no title)"
+      log warn "${ANSI[yellow]}[download]${ANSI[nc]} Skipping ${id}: video unavailable (no title)"
       db:mark-failed "$id"
       continue
     fi
 
-    log info "${ANSI[red]}[download]${ANSI[nc]} name=${name};id=${id}"
-
     if ynkr:song "$id" "$name"; then
       if [[ -f "$DOWNLOADS/$id*" ]]; then
-        log info "${ANSI[green]}[Downloaded] name=${name@Q};id=${id@Q}"
+        log info "${ANSI[green]}[download-suceess]${ANSI[bold]} name=${name@Q};id=${id@Q}"
         db:mark-downloaded "$id"
       else
-        log warn "${ANSI[yellow]}[Failed] name=${name@Q};id=${id@Q}"
+        log warn "${ANSI[red]}[download-fail]${ANSI[bold]} name=${name@Q};id=${id@Q}"
         db:mark-failed "$id"
 
         YNKR_FAILED_DOWNLOADS[$id]="$name"
@@ -105,18 +107,14 @@ main() {
       db:show >&2
       db:show playlists >&2
       db:show songs >&2
-
       sleep 3
-
       tree "$MUSIC_DIR" >&2
-
-      sleep 2
-
-      for key in "${!YNKR_FAILED_DOWNLOADS[@]}"; do
-        local val=${YNKR_FAILED_DOWNLOADS[$key]}
-        log error "${ANSI[red]}[FAILED_DOWNLOAD:]${ANSI[nc]}${ANSI[bold]}${key}:${val}"
-      done
     fi
+
+    for key in "${!YNKR_FAILED_DOWNLOADS[@]}"; do
+      local val=${YNKR_FAILED_DOWNLOADS[$key]}
+      log error "${ANSI[red]}[FAILED-DOWNLOAD]${ANSI[nc]}${ANSI[bold]}${key}:${val}"
+    done
 
     log info "${ANSI[yellow]}YNKR - Done"
     log warn "${ANSI[yellow]}Sleeping for the next ${ANSI[red]}$SLEEP${ANSI[yellow]} seconds"

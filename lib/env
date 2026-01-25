@@ -21,14 +21,11 @@ declare YNKR_DEBUG=${DEBUG:-false}
 
 declare -A YNKR_FAILED_DOWNLOADS
 
-# YNKR_DEBUG=true
-
 declare -A YNKR_PLAYLIST
-
 YT_ARCHIVE="${YNKR_ARCHIVE:-/app/downloads/archive.yt}"
 [[ -e "$YT_ARCHIVE" ]] || {
   mkdir -p "$(dirname "$YT_ARCHIVE")"
   touch "$YT_ARCHIVE"
 }
 
-SLEEP=69
+SLEEP=3600
