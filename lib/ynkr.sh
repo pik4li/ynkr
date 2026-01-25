@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+test-net() {
+  local url test
+  url=ysap.sh/ping # should print out just 'pong' if curl did work
+  test=$(curl -s "${url}")
+
+  # exit if ysap.sh/ping did not respond with 'pong'
+  [[ "${test}" == "pong" ]] || return 69
+}
+
 ynkr:parse-playlist-file() {
   local file="${YNKR_PLAYLISTS:-./playlists}"
   [[ -n "$file" && -f "$file" ]] || {
@@ -127,6 +136,11 @@ ynkr:song() {
 
 # should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
+  if ! test-net; then
+    log warn "Network is not reacable. Sleeping for ${ANSI[red]}10${ANSI[nc]} seconds"
+    sleep 10
+  fi
+
   local accum=1
   while true; do
     local LONG_SLEEP=120
