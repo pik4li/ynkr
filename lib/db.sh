@@ -20,6 +20,7 @@ db:init() {
 
   sqlite3 "$DB" <<'SQL'
 PRAGMA foreign_keys = ON;
+PRAGMA busy_timeout = 5000;
 
 CREATE TABLE IF NOT EXISTS playlists (
   id INTEGER PRIMARY KEY,
@@ -64,7 +65,7 @@ SQL
 
 db:migrate-mb() {
   local cols
-  cols=$(sqlite3 "$DB" "PRAGMA table_info(songs);" | cut -d'|' -f2)
+  cols=$(sqlite3 "$DB" "PRAGMA table_info(songs);PRAGMA busy_timeout = 5000;" | cut -d'|' -f2)
   [[ "$cols" == *"artist"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN artist TEXT;"
   [[ "$cols" == *"album"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN album TEXT;"
   [[ "$cols" == *"file_path"* ]] || sqlite3 "$DB" "ALTER TABLE songs ADD COLUMN file_path TEXT;"
@@ -86,6 +87,7 @@ db:add-playlist() {
   log info "${ANSI[yellow]}[db:add-playlist:]${ANSI[nc]} name=${ANSI[cyan]}${name@Q}${ANSI[nc]} | id=${ANSI[magenta]}${yt_id@Q}${ANSI[nc]}"
 
   sqlite3 "$DB" <<SQL
+PRAGMA busy_timeout = 5000;
 INSERT INTO playlists (name, yt_id)
 VALUES ('$name_esc', '$yt_id_esc')
 ON CONFLICT(yt_id) DO UPDATE SET name=excluded.name;
@@ -103,6 +105,7 @@ db:add-song() {
 
   # Insert new song, or update name if it was empty/null
   sqlite3 "$DB" <<SQL
+PRAGMA busy_timeout = 5000;
 INSERT INTO songs (name, yt_id)
 VALUES ('$name_esc', '$yt_id_esc')
 ON CONFLICT(yt_id) DO UPDATE SET
@@ -118,6 +121,7 @@ SQL
     log info "${ANSI[yellow]}[db:add-song:]${ANSI[nc]} playlist=${ANSI[green]}$(db:get-song-name "$playlist")"
 
     sqlite3 "$DB" <<SQL
+PRAGMA busy_timeout = 5000;
 INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id)
 SELECT p.id, s.id
 FROM playlists p, songs s
@@ -147,6 +151,7 @@ db:is-song-processed() {
 
   local count
   count=$(sqlite3 "$DB" "
+    PRAGMA busy_timeout = 5000;
     SELECT COUNT(*) FROM song_tags st
     JOIN songs s ON s.id = st.song_id
     JOIN tags t ON t.id = st.tag_id
@@ -165,6 +170,7 @@ db:tag-song() {
 
   # Remove all existing state tags first, then add the new one
   sqlite3 "$DB" <<SQL
+PRAGMA busy_timeout = 5000;
 -- Ensure tag exists
 INSERT OR IGNORE INTO tags (name) VALUES ('$tag_esc');
 
@@ -192,6 +198,7 @@ db:get-song-ids() {
   playlist_esc=$(_sql_escape "$playlist")
 
   db "
+PRAGMA busy_timeout = 5000;
 SELECT s.yt_id
 FROM playlists p
 JOIN playlist_songs ps ON ps.playlist_id=p.id
@@ -204,6 +211,7 @@ db:get-song-tag() {
   local song_id="$1"
 
   db "
+PRAGMA busy_timeout = 5000;
 SELECT t.name
 FROM songs s
 JOIN song_tags st ON st.song_id=s.id
@@ -266,6 +274,7 @@ SQL
 
 db:get-pending() {
   db "
+  PRAGMA busy_timeout = 5000;
   SELECT s.yt_id
   FROM songs s
   JOIN song_tags st ON st.song_id = s.id
@@ -313,6 +322,7 @@ db:show() {
 
   if [[ -z "$table" ]]; then
     sqlite3 "$DB" <<'SQL'
+PRAGMA busy_timeout = 5000;
 .mode column
 .headers on
 SELECT 'playlists' AS table_name, COUNT(*) AS rows FROM playlists
