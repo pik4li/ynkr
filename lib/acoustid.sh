@@ -74,8 +74,12 @@ aid:make-fingerprint() {
     return
   fi
 
-  fpcalc -json "$file" >"$dest"
-  [[ -e "$dest" ]] || return 1
+  log info "$LOG_AID Starting to get fingerprint for $file"
+  if fpcalc -json "$file" >"$dest"; then
+    [[ -e "$dest" ]]
+  else
+    return 1
+  fi
 }
 
 aid:ask-aid() {
