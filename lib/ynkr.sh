@@ -88,6 +88,15 @@ ynkr:song() {
   [[ -n "$yid" ]] || return 1
   local url="https://youtube.com/watch?v=$yid"
 
+  local tag=$(db:get-song-tag "$yid")
+
+  case "$tag" in
+  *fail*)
+    log info "${ANSI[magenta]}[:YT-DLP:]${ANSI[nc]}${ANSI[bold]} Skipping: ${ANSI[cyan]}name=${name@Q}${ANSI[nc]};${ANSI[magenta]}id=$yid${ANSI[nc]};tag=$tag"
+    return
+    ;;
+  esac
+
   log info "${ANSI[magenta]}[:YT-DLP:]${ANSI[nc]}${ANSI[bold]} Downloading: ${ANSI[cyan]}${name@Q}${ANSI[nc]} - ${ANSI[magenta]}$yid${ANSI[nc]}"
 
   local cmd="yt-dlp"
