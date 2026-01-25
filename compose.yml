@@ -3,7 +3,8 @@ services:
     environment:
       - PUID=1000        # Replace with your actual UID
       - PGID=966         # Replace with your actual GID (the docker group GID)
-      - DEBUG=true       # set debug flag to true
+      - DEBUG=false       # set debug flag to true = more output
+      - ACOUSTID_API_KEY=xxx # set acoustID api key (NEEDED!)
     build: .
     # image: ynkr-sh:latest # only if build with `make build`
     volumes:

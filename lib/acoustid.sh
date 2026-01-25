@@ -45,13 +45,12 @@ _aid_move_file() {
 }
 
 # ---------- configuration ----------
-declare -r ACOUSTID_KEY="k4hQD6v7FA0"
 declare -r AID_URL="https://api.acoustid.org/v2/lookup?client=${ACOUSTID_KEY}&meta=recordings"
 declare -r AID_CACHE="/app/db/.cache"
 declare -r LOG_AID="${ANSI[red]}[ACOUSTIC-ID]${ANSI[nc]}"
 
 # AcoustID minimum confidence score (0.0-1.0)
-declare -r ACOUSTID_MIN_SCORE="${ACOUSTID_MIN_SCORE:-0.8}"
+# declare -r ACOUSTID_MIN_SCORE="${ACOUSTID_MIN_SCORE:-0.8}"
 
 # AcoustID rate limiting (3 requests per second recommended)
 declare -r AID_RATE_LIMIT=1    # Conservative: 1 request per second
@@ -137,7 +136,8 @@ aid:get-pending-files() {
 
 aid:extract-metadata() {
   local json="$1"
-  local min_score="$2"
+
+  min_score=${ACOUSTID_MIN_SCORE:-0.85}
 
   [[ -n "$json" ]] || return 1
 
@@ -147,6 +147,8 @@ aid:extract-metadata() {
 
   # Check if score meets minimum threshold
   [[ -n "$score" ]] || return 1
+
+  LAST_SCORE=$score
 
   # Use bc for floating point comparison (shell arithmetic doesn't handle decimals)
   if (($(echo "$score >= $min_score" | bc -l))); then
@@ -213,7 +215,7 @@ aid:process-file() {
   # Extract metadata
   metadata=$(aid:extract-metadata "$response" "$ACOUSTID_MIN_SCORE")
   if [[ $? -ne 0 ]]; then
-    log info "$LOG_AID ${ANSI[yellow]}No high-confidence match for ${title} (score < ${ACOUSTID_MIN_SCORE})${ANSI[nc]}"
+    log info "$LOG_AID ${ANSI[yellow]}No high-confidence match for ${title} (score[$LAST_SCORE] < ${ACOUSTID_MIN_SCORE})${ANSI[nc]}"
     db:tag-song "$yt_id" "aid_fallback"
     return 1
   fi

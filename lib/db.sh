@@ -150,14 +150,17 @@ db:is-song-processed() {
   yt_id_esc=$(_sql_escape "$yt_id")
 
   local count
-  count=$(sqlite3 "$DB" "
-    PRAGMA busy_timeout = 5000;
-    SELECT COUNT(*) FROM song_tags st
-    JOIN songs s ON s.id = st.song_id
-    JOIN tags t ON t.id = st.tag_id
-    WHERE s.yt_id = '$yt_id_esc'
-      AND t.name IN ('processed', 'jellyfin_tagged', 'organized');
-  ")
+  count=$(
+    sqlite3 "$DB" <<SQL
+PRAGMA busy_timeout=5000;
+SELECT COUNT(*)
+FROM song_tags st
+JOIN songs s ON s.id = st.song_id
+JOIN tags t ON t.id = st.tag_id
+WHERE s.yt_id = ?1
+  AND t.name IN ('processed','jellyfin_tagged','organized');
+SQL
+  )
 
   ((count > 0))
 }
