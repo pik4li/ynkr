@@ -174,7 +174,73 @@ WHERE s.yt_id='$song_id_esc' AND t.name='$tag_esc';
 "
 }
 
+db:update-song-name() {
+  local yt_id_esc name_esc
+  yt_id_esc=$(_sql_escape "$1")
+  name_esc=$(_sql_escape "$2")
+
+  db_exec "
+UPDATE songs SET name='$name_esc'
+WHERE yt_id='$yt_id_esc';
+"
+}
+db:update-song-acoustid() {
+  local yt_id_esc acoustid_esc source_esc score
+  yt_id_esc=$(_sql_escape "$1")
+  acoustid_esc=$(_sql_escape "$2")
+  source_esc=$(_sql_escape "$3")
+  score="$4"
+
+  db_exec "
+UPDATE songs
+SET acoustid_id='$acoustid_esc',
+    metadata_source='$source_esc',
+    metadata_score=$score
+WHERE yt_id='$yt_id_esc';
+"
+}
+
+db:update-song-metadata() {
+  local yt_id_esc artist_esc album_esc path_esc artists_esc
+  yt_id_esc=$(_sql_escape "$1")
+  artist_esc=$(_sql_escape "$2")
+  album_esc=$(_sql_escape "$3")
+  path_esc=$(_sql_escape "$4")
+  artists_esc=$(_sql_escape "${5:-}")
+
+  db_exec "
+UPDATE songs
+SET artist='$artist_esc',
+    album='$album_esc',
+    file_path='$path_esc',
+    artists='$artists_esc'
+WHERE yt_id='$yt_id_esc';
+"
+}
+
 # ---------- queries ----------
+db:get-song-name() {
+  local yt_id_esc
+  yt_id_esc=$(_sql_escape "$1")
+  db_scalar "SELECT name FROM songs WHERE yt_id='$yt_id_esc';"
+}
+db:get-song-id() {
+  local name_esc
+  name_esc=$(_sql_escape "$1")
+  db_scalar "SELECT yt_id FROM songs WHERE name='$name_esc';"
+}
+db:get-song-tag() {
+  local yt_id_esc
+  yt_id_esc=$(_sql_escape "$1")
+
+  db_query "
+SELECT t.name
+FROM songs s
+JOIN song_tags st ON st.song_id=s.id
+JOIN tags t ON t.id=st.tag_id
+WHERE s.yt_id='$yt_id_esc';
+"
+}
 
 db:get-song-ids() {
   local playlist_esc
@@ -197,4 +263,28 @@ JOIN song_tags st ON st.song_id=s.id
 JOIN tags t ON t.id=st.tag_id
 WHERE t.name='pending';
 "
+}
+
+db:mark-downloaded() { db:tag-song "$1" downloaded; }
+db:mark-failed() { db:tag-song "$1" failed; }
+
+db:cleanup-unavailable() {
+  local count yt_id
+
+  count=$(db_scalar "
+SELECT COUNT(*)
+FROM songs
+WHERE name IS NULL OR name='';
+")
+
+  ((count == 0)) && return 0
+
+  while IFS= read -r yt_id; do
+    [[ -n "$yt_id" ]] && db:tag-song "$yt_id" unavailable
+  done < <(
+    db_query "
+SELECT yt_id FROM songs
+WHERE name IS NULL OR name='';
+"
+  )
 }
