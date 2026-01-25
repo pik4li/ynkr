@@ -90,7 +90,7 @@ download() {
     fi
 
     if ynkr:song "$id" "$name"; then
-      if [[ -f "$DOWNLOADS/$id*" ]]; then
+      if [[ -f "$DOWNLOADS/$id.*" ]]; then
         log info "${ANSI[green]}[download-suceess]${ANSI[bold]} name=${name@Q};id=${id@Q}"
         db:mark-downloaded "$id"
       else
