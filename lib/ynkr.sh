@@ -128,16 +128,25 @@ ynkr:song() {
 # should process metadata - gets put in background by main ynkr task.
 ynkr:meta() {
   while true; do
+    local accum=1
+    local LONG_SLEEP=120
     local tmp=() t f
     mapfile tmp < <(find "$DOWNLOADS" -type f -not -name "*.db" 2>/dev/null)
     ((${#tmp[@]} > 1)) || {
-      log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} No files to process.."
+      if ((accum > 3)); then
+        log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} Sleeping for $LONG_SLEEP seconds.."
+        sleep $LONG_SLEEP
+        accum=1
+      fi
+
+      log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]} No files to process.. ${ANSI[red]}$accum/3"
       for t in {10..0}; do
         sleep 1
 
         ((t == 10 || t == 3 || t == 1)) &&
           log warn "${ANSI[magenta]}[ynkr:meta:]${ANSI[nc]}Next filecheck in: ${ANSI[cyan]}${t}"
       done
+      ((accum++))
       continue
     }
 
