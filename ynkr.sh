@@ -77,13 +77,15 @@ download() {
     log info "${ANSI[red]}[download]${ANSI[nc]} name=${name};id=${id}"
 
     if ynkr:song "$id" "$name"; then
-      log info "${ANSI[green]}[Downloaded] name=${name@Q};id=${id@Q}"
-      db:mark-downloaded "$id"
-    else
-      log warn "${ANSI[yellow]}[Failed] name=${name@Q};id=${id@Q}"
-      db:mark-failed "$id"
+      if [[ -f "$DOWNLOADS/$id*" ]]; then
+        log info "${ANSI[green]}[Downloaded] name=${name@Q};id=${id@Q}"
+        db:mark-downloaded "$id"
+      else
+        log warn "${ANSI[yellow]}[Failed] name=${name@Q};id=${id@Q}"
+        db:mark-failed "$id"
 
-      YNKR_FAILED_DOWNLOADS[$id]="$name"
+        YNKR_FAILED_DOWNLOADS[$id]="$name"
+      fi
     fi
 
     sleep .005
