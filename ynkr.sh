@@ -42,14 +42,15 @@ prepare() {
       local song_name=${songs[j]}
       local song_id=${ids[j]}
 
-      # Add song to database (updates name if it was empty)
-      db:add-song "${song_name}" "${song_id}" "$playlist_yt_id"
+      if ! db:get-song-name "$song_id"; then
+        # Add song to database (updates name if it was empty)
+        db:add-song "${song_name}" "${song_id}" "$playlist_yt_id"
+      fi
 
       # Only tag as pending if not already processed
       if ! db:is-song-processed "$song_id"; then
         db:tag-song "${song_id}" "pending"
       fi
-
       sleep .005
     done
   done
@@ -104,6 +105,13 @@ main() {
       sleep 3
 
       tree "$MUSIC_DIR" >&2
+
+      sleep 2
+
+      for key in "${!YNKR_FAILED_DOWNLOADS[@]}"; do
+        local val=${YNKR_FAILED_DOWNLOADS[$key]}
+        log error "${ANSI[red]}[FAILED_DOWNLOAD:]${ANSI[nc]}${ANSI[bold]}${key}:${val}"
+      done
     fi
 
     log info "${ANSI[yellow]}YNKR - Done"
