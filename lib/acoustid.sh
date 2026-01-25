@@ -260,9 +260,9 @@ aid:process() {
 
   # Get pending files
   local files=()
-  # while IFS= read -r file; do
-  #   [[ -n "$file" ]] && files+=("$file")
-  # done < <(aid:get-pending-files)
+  while IFS= read -r file; do
+    [[ -n "$file" ]] && files+=("$file")
+  done < <(aid:get-pending-files)
 
   local count=${#files[@]}
   if ((count == 0)); then
