@@ -90,16 +90,19 @@ aid:ask-aid() {
     return 1
   }
 
-  local dur fp json_content
-  json_content=$(cat "$fp_file")
-  dur=$(jq -r '.duration' <<<"$json_content")
-  fp=$(jq -r '.fingerprint' <<<"$json_content")
-  dur=${dur%.*}
+  local dur fp
 
-  local final="${AID_URL}&fingerprint=$fp&duration=$dur"
+  dur=$(jq -r .duration <"$fp_file")
+  fp=$(jq -r .fingerprint <"$fp_file")
+
+  local final="${AID_URL}&fingerprint=${fp}&duration=${dur%.*}"
 
   local info
   info=$(curl -s "$final")
+
+  if $YNKR_DEBUG; then
+    log info "$LOG_AID Testing-url: ${final@Q}"
+  fi
 
   [[ -n "$info" ]] || {
     log error "$LOG_AID No output: ${final@Q}"
@@ -170,6 +173,8 @@ aid:extract-metadata() {
       printf '%s\t%s\t%s\t%s\t%s' "$title" "$artist" "$artists" "$score" "$acoustid_id"
       return 0
     fi
+  else
+    log warning "$LOG_AID Score: ${ASCI[magenta]}$score"
   fi
 
   return 1
